@@ -6,6 +6,24 @@ module ApplicationHelper
     tag.title [ @page_title, account_name, "Fizzy" ].compact.join(" | ")
   end
 
+  def render_markdown(text)
+    return "" if text.blank?
+
+    renderer = Redcarpet::Render::HTML.new(
+      hard_wrap: true,
+      link_attributes: { target: "_blank", rel: "noopener" }
+    )
+    markdown = Redcarpet::Markdown.new(renderer,
+      autolink: true,
+      tables: true,
+      fenced_code_blocks: true,
+      strikethrough: true,
+      superscript: true,
+      no_intra_emphasis: true
+    )
+    markdown.render(text).html_safe
+  end
+
   def icon_tag(name, **options)
     tag.span class: class_names("icon icon--#{name}", options.delete(:class)), "aria-hidden": true, **options
   end

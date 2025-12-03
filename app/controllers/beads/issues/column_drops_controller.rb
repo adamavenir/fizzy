@@ -1,14 +1,26 @@
 class Beads::Issues::ColumnDropsController < ApplicationController
   before_action :set_board
-  before_action :set_columns
+  before_action :set_issue
+  before_action :set_target_column
 
   def create
     return head :bad_request unless @board&.beads_enabled?
 
-    mover = BeadsCardMover.new(@board.beads_client)
-    mover.move(params[:issue_id], @from_column, @to_column)
+    client = @board.beads_client
 
-    head :ok
+    # Remove any fizzy: labels (moving out of triage)
+    @issue.labels&.each do |label|
+      client.remove_label(@issue.id, label) if label.start_with?("fizzy:")
+    end
+
+    # Set the target status
+    if @target_column.beads_value == "closed"
+      client.close(@issue.id)
+    else
+      client.update(@issue.id, status: @target_column.beads_value)
+    end
+
+    # Success - will use turbo_stream view to update UI
   rescue BeadsClient::Error => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
@@ -18,8 +30,12 @@ class Beads::Issues::ColumnDropsController < ApplicationController
       @board = Current.user.boards.find(params[:board_id])
     end
 
-    def set_columns
-      @from_column = @board.columns.find(params[:from_column_id]) if params[:from_column_id]
-      @to_column = @board.columns.find(params[:column_id])
+    def set_issue
+      issue_data = @board.beads_client.show(params[:issue_issue_id])
+      @issue = BeadsIssue.new(issue_data)
+    end
+
+    def set_target_column
+      @target_column = @board.columns.find(params[:column_id])
     end
 end

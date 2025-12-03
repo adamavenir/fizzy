@@ -1,0 +1,13 @@
+<% @page_title = @issue.title %>
+<% @header_class = "header--card" %>
+
+<% content_for :header do %>
+  <div class="header__actions header__actions--start">
+    <%= link_back_to_board(@issue.board) %>
+  </div>
+<% end %>
+
+<div>
+  <%= render "cards/container", card: @issue %>
+  <%= render "cards/messages", card: @issue %>
+</div>

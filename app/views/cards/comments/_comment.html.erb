@@ -1,5 +1,4 @@
-<% cache comment do %>
-  <%= turbo_frame_tag comment, :container do %>
+<%= turbo_frame_tag comment, :container do %>
     <%# Bump for CSS changes: 2025-06-30 -%>
     <div id="<%= dom_id(comment) %>" data-creator-id="<%= comment.creator_id %>"  class="comment flex align-start full-width <%= "comment--system" if comment.creator.system? %>">
       <figure class="comment__avatar flex-item-no-shrink" aria-hidden="true">
@@ -10,28 +9,46 @@
         <div class="comment__author flex align-center gap-half">
           <h3 class="font-weight-normal txt-normal flex-item-justify-start min-width overflow-ellipsis">
             <strong>
-              <%= link_to comment.creator.name, comment.creator, class: "txt-ink btn btn--plain fill-transparent", data: { turbo_frame: "_top" } %>
+              <% if comment.is_a?(BeadsComment) %>
+                <span class="txt-ink"><%= comment.creator.name %></span>
+              <% else %>
+                <%= link_to comment.creator.name, comment.creator, class: "txt-ink btn btn--plain fill-transparent", data: { turbo_frame: "_top" } %>
+              <% end %>
             </strong>
 
-            <%= link_to comment, class: "txt-undecorated txt-ink translucent txt-normal txt-capitalize", data: { turbo_frame: "_top" } do %>
-              <%= local_datetime_tag comment.created_at, style: :agoorweekday %>,
-              <%= local_datetime_tag comment.created_at, style: :time %>
+            <% if comment.is_a?(BeadsComment) %>
+              <span class="txt-ink translucent txt-normal txt-capitalize">
+                <%= local_datetime_tag comment.created_at, style: :agoorweekday %>,
+                <%= local_datetime_tag comment.created_at, style: :time %>
+              </span>
+            <% else %>
+              <%= link_to comment, class: "txt-undecorated txt-ink translucent txt-normal txt-capitalize", data: { turbo_frame: "_top" } do %>
+                <%= local_datetime_tag comment.created_at, style: :agoorweekday %>,
+                <%= local_datetime_tag comment.created_at, style: :time %>
+              <% end %>
             <% end %>
           </h3>
 
-          <%= link_to edit_card_comment_path(comment.card, comment),
-                class: "comment__edit btn btn--circle borderless translucent", data: { only_visible_to_you: true } do %>
-            <%= icon_tag "menu-dots-horizontal" %>
-            <span class="for-screen-reader">Edit this comment</span>
+          <% unless comment.is_a?(BeadsComment) %>
+            <%= link_to edit_card_comment_path(comment.card, comment),
+                  class: "comment__edit btn btn--circle borderless translucent", data: { only_visible_to_you: true } do %>
+              <%= icon_tag "menu-dots-horizontal" %>
+              <span class="for-screen-reader">Edit this comment</span>
+            <% end %>
           <% end %>
         </div>
 
         <div class="comment__body rich-text-content" data-controller="syntax-highlight retarget-links" data-turbo-permanent>
-          <%= comment.body %>
+          <% if comment.is_a?(BeadsComment) %>
+            <%= render_markdown(comment.body) %>
+          <% else %>
+            <%= comment.body %>
+          <% end %>
         </div>
 
-        <%= render "cards/comments/reactions/reactions", comment: comment %>
+        <% unless comment.is_a?(BeadsComment) %>
+          <%= render "cards/comments/reactions/reactions", comment: comment %>
+        <% end %>
       </div>
     </div>
   <% end %>
-<% end %>

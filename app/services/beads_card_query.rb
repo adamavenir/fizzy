@@ -16,17 +16,25 @@ class BeadsCardQuery
     return [] unless @client
 
     issues = fetch_issues_for_column(column)
-    sort_issues(issues.map { |data| BeadsIssue.new(data) })
+    sort_issues(wrap_issues(issues))
   end
 
   # Returns all BeadsIssue objects for the board
   def all
     return [] unless @client
     issues = @client.list
-    sort_issues(issues.map { |data| BeadsIssue.new(data) })
+    sort_issues(wrap_issues(issues))
   end
 
   private
+    # Wrap issue data in BeadsIssue objects with board reference
+    def wrap_issues(issues)
+      issues.map do |data|
+        issue = BeadsIssue.new(data)
+        issue.board = @board
+        issue
+      end
+    end
     def fetch_issues_for_column(column)
       case column.column_type
       when "fizzy_tag"

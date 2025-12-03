@@ -1,4 +1,5 @@
-<%= column_tag id: "the-stream", name: "Maybe?", drop_url: columns_card_drops_stream_path("__id__"), collapsed: false, selected: "true", class: "cards--considering" do %>
+<% stream_drop_url = board.beads_enabled? ? issue_stream_path(board_id: board.id, issue_issue_id: "__id__") : columns_card_drops_stream_path("__id__") %>
+<%= column_tag id: "the-stream", name: "Maybe?", drop_url: stream_drop_url, collapsed: false, selected: "true", class: "cards--considering" do %>
   <header class="cards__header">
     <div class="cards__expander">
       <h2 class="cards__expander-title" data-collapsible-columns-target="title">Maybe?</h2>

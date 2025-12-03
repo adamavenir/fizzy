@@ -1,0 +1,9 @@
+<h1 class="card__title flex align-start gap-half">
+  <%= card.title || "Untitled" %>
+</h1>
+
+<% if card.description.present? %>
+  <div class="card__description rich-text-content push-top">
+    <%= render_markdown(card.description) %>
+  </div>
+<% end %>

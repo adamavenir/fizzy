@@ -1,0 +1,26 @@
+<section id="<%= dom_id(card, :card_container) %>" class="card-perma" style="--card-color: <%= card.color %>;">
+  <div class="card-perma__bg">
+    <%= card_article_tag card, class: "card" do %>
+      <header class="card__header">
+        <%= render "beads/issues/container/board", card: card %>
+        <%= render "beads/issues/container/tags", card: card %>
+      </header>
+
+      <div class="card__body justify-space-between">
+        <div class="card__content">
+          <%= render "beads/issues/container/content", card: card %>
+        </div>
+
+        <%= render "beads/issues/container/status", card: card %>
+      </div>
+
+      <footer class="card__footer full-width flex align-start gap">
+        <%= render "cards/display/common/meta", card: card do %>
+          <%= render "beads/issues/container/assignees", card: card %>
+        <% end %>
+      </footer>
+    <% end %>
+  </div>
+
+  <%= render "beads/issues/container/actions", card: card %>
+</section>

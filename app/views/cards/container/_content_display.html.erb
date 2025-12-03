@@ -1,9 +1,17 @@
 <h1 class="card__title flex align-start gap-half">
-  <%= link_to card.title, edit_card_path(card), class: "card__title-link" %>
+  <% if card.is_a?(BeadsIssue) %>
+    <%= card.title %>
+  <% else %>
+    <%= link_to card.title, edit_card_path(card), class: "card__title-link" %>
+  <% end %>
 </h1>
 
 <% unless card.description.blank? %>
   <div class="card__description rich-text-content" data-controller="syntax-highlight retarget-links">
-    <%= card.description %>
+    <% if card.is_a?(BeadsIssue) %>
+      <%= render_markdown(card.description_without_cover) %>
+    <% else %>
+      <%= card.description %>
+    <% end %>
   </div>
 <% end %>

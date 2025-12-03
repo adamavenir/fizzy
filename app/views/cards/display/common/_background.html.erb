@@ -1,6 +1,10 @@
 <% if card.image.present? %>
   <div class="card__background">
-    <%= image_tag card.image.presence || "", size: 120, data: { upload_preview_target: "image" } %>
+    <% if card.is_a?(BeadsIssue) && card.cover_image_url %>
+      <%= image_tag card.cover_image_url, size: 120, data: { upload_preview_target: "image" } %>
+    <% elsif !card.is_a?(BeadsIssue) %>
+      <%= image_tag card.image.presence || "", size: 120, data: { upload_preview_target: "image" } %>
+    <% end %>
   </div>
 
   <%= yield %>

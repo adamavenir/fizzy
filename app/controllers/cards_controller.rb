@@ -11,7 +11,13 @@ class CardsController < ApplicationController
 
   def create
     if @board.beads_enabled?
-      redirect_to @board, alert: "Cards on this board are managed through Beads"
+      issue = @board.beads_client.create(
+        title: "New card",
+        labels: ["fizzy:maybe"],
+        priority: 2,
+        issue_type: "task"
+      )
+      redirect_to @board, notice: "Card created"
       return
     end
 

@@ -231,12 +231,32 @@ Rails.application.routes.draw do
     route_for :board_webhook, webhook.board, webhook, options
   end
 
+  resolve "BeadsIssue" do |issue, options|
+    route_for :issue, issue.board, issue, options
+  end
+
   # Beads integration routes
   scope :beads do
+    # Serve images from .beads/images/
+    get "images/:board_id/*path", to: "beads/images#show", as: :beads_image
+
     scope "boards/:board_id" do
-      resources :issues, param: :issue_id, controller: "beads/issues", only: [:show] do
+      resources :issues, param: :issue_id, controller: "beads/issues", only: [:show, :edit, :update] do
         scope module: "beads/issues" do
           resource :column_drop, only: :create
+          resource :image, only: [:create, :destroy]
+          resource :goldness, only: [:create, :destroy]
+          resource :pin, only: [:show, :create]
+          resource :watch, only: [:show, :create]
+          resources :comments, only: :create
+          resources :assignments, only: [:new, :create]
+
+          # Built-in column drops
+          scope module: "drops" do
+            resource :stream, only: :create
+            resource :not_now, only: :create
+            resource :closure, only: :create
+          end
         end
       end
     end

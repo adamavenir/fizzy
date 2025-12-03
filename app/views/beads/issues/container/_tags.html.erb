@@ -1,0 +1,41 @@
+<div class="card__tags">
+  <%# Priority badge %>
+  <% if card.priority.present? %>
+    <% priority_styles = {
+      0 => "background: var(--color-negative); color: white;",
+      1 => "background: var(--color-warning); color: black;",
+      2 => "background: var(--color-secondary); color: white;",
+      3 => "background: var(--color-accent); color: white;",
+      4 => "opacity: 0.5;"
+    } %>
+    <span class="btn btn--small txt-x-small txt-uppercase font-weight-bold" style="<%= priority_styles[card.priority] %>">
+      P<%= card.priority %>
+    </span>
+  <% end %>
+
+  <%# Issue type badge %>
+  <% if card.issue_type.present? %>
+    <% type_styles = {
+      "bug" => "color: var(--color-negative);",
+      "feature" => "color: var(--color-positive);",
+      "epic" => "color: var(--color-accent);",
+      "chore" => "opacity: 0.6;",
+      "task" => "opacity: 0.6;"
+    } %>
+    <span class="btn btn--plain txt-x-small txt-uppercase" style="<%= type_styles[card.issue_type] %>">
+      <%= card.issue_type %>
+    </span>
+  <% end %>
+
+  <%# Regular labels %>
+  <% if card.tags.any? %>
+    <%= icon_tag "tag-outline", class: "translucent" %>
+    <div class="min-width overflow-ellipsis">
+      <% card.tags.each_with_index do |tag, index| %>
+        <span class="card__tag btn btn--plain txt-uppercase">
+          <%= tag.title %><%= "," unless index == card.tags.size - 1 %>
+        </span>
+      <% end %>
+    </div>
+  <% end %>
+</div>

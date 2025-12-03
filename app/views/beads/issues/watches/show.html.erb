@@ -1,0 +1,5 @@
+<%= turbo_frame_tag @card, :watch do %>
+  <%= button_to issue_watch_path(board_id: @card.board.id, issue_issue_id: @card.id), class: "btn", data: { controller: "tooltip" } do %>
+    <%= icon_tag "bell-off" %> <span class="for-screen-reader">Watch this</span>
+  <% end %>
+<% end %>

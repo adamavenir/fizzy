@@ -1,0 +1,12 @@
+<% if card.assignees.any? %>
+  <% card.assignees.each do |assignee| %>
+    <% if assignee.respond_to?(:account) && assignee.account %>
+      <%= avatar_tag assignee, tabindex: 0 %>
+    <% else %>
+      <%# Fake user without account - show initials only %>
+      <span class="avatar btn btn--circle" style="background: var(--color-secondary);">
+        <span aria-hidden="true"><%= assignee.familiar_name.split.map(&:first).join.upcase[0..1] %></span>
+      </span>
+    <% end %>
+  <% end %>
+<% end %>

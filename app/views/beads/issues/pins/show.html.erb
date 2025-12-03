@@ -1,0 +1,5 @@
+<%= turbo_frame_tag @card, :pin do %>
+  <%= button_to issue_pin_path(board_id: @card.board.id, issue_issue_id: @card.id), class: "btn", data: { controller: "tooltip" } do %>
+    <%= icon_tag "unpinned" %> <span class="for-screen-reader">Pin this card</span>
+  <% end %>
+<% end %>

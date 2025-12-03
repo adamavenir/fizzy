@@ -13,7 +13,7 @@ else
 
   def create_tenant(signal_account_name)
     tenant_id = ActiveRecord::FixtureSet.identify signal_account_name
-    email_address = "david@37signals.com"
+    email_address = "hi@fizzybeads.com"
     identity = Identity.find_or_create_by!(email_address: email_address)
 
     unless account = Account.find_by(external_account_id: tenant_id)
@@ -23,7 +23,7 @@ else
           name: signal_account_name
         },
         owner: {
-          name: "David Heinemeier Hansson",
+          name: "Beads",
           identity: identity
         }
       )
@@ -52,8 +52,24 @@ else
     board.cards.create!(title:, description:, creator:, status:)
   end
 
-  # Seed accounts
-  seed_account "cleanslate"
-  seed_account "37signals"
-  seed_account "honcho"
+  # Create minimal account for local beads usage
+  tenant_id = ActiveRecord::FixtureSet.identify "fizzybeads"
+  email_address = "hi@fizzybeads.com"
+  identity = Identity.find_or_create_by!(email_address: email_address)
+
+  unless Account.find_by(external_account_id: tenant_id)
+    Account.create_with_owner(
+      account: {
+        external_account_id: tenant_id,
+        name: "fizzybeads"
+      },
+      owner: {
+        name: "Beads",
+        identity: identity
+      }
+    )
+  end
+
+  puts "✓ Created fizzybeads account"
+  puts "  Login: hi@fizzybeads.com"
 end

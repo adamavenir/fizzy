@@ -1,0 +1,2 @@
+<%# Refresh the Not Now column %>
+<%= turbo_stream.replace("not-now", partial: "boards/show/not_now", method: :morph, locals: { board: @board }) %>

@@ -236,7 +236,7 @@
   --color-gradient-4: var(--color-canvas);
 
   @media (prefers-color-scheme: dark) {
-    --lch-canvas: 20% 0.0195 232.58;
+    --lch-canvas: 15% 0.0195 232.58;
     --lch-ink-inverted: var(--lch-black);
 
     --lch-ink-darkest: 96.02% 0.0034 260;

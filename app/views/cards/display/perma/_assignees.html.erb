@@ -1,3 +1,7 @@
 <%= render "cards/display/common/assignees", card: card do %>
-  <%= turbo_frame_tag card, :assignment, src: new_card_assignment_path(card), loading: :lazy, refresh: "morph" %>
+  <% if card.is_a?(BeadsIssue) %>
+    <%= turbo_frame_tag card, :assignment, src: new_issue_assignment_path(board_id: card.board.id, issue_issue_id: card.id), loading: :lazy, refresh: "morph" %>
+  <% else %>
+    <%= turbo_frame_tag card, :assignment, src: new_card_assignment_path(card), loading: :lazy, refresh: "morph" %>
+  <% end %>
 <% end %>

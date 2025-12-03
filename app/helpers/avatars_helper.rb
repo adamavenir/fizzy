@@ -38,6 +38,11 @@ module AvatarsHelper
   end
 
   def avatar_image_tag(user, **options)
-    image_tag user_avatar_url(user, script_name: user.account.slug), aria: { hidden: "true" }, size: 48, title: user.name, **options
+    # Use Fizzy logo for Beads creator
+    if user.respond_to?(:to_param) && user.to_param == "beads"
+      image_tag "logo.png", aria: { hidden: "true" }, size: 48, title: user.name, **options
+    else
+      image_tag user_avatar_url(user, script_name: user.account.slug), aria: { hidden: "true" }, size: 48, title: user.name, **options
+    end
   end
 end

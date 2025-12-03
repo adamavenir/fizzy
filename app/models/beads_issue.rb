@@ -110,7 +110,12 @@ class BeadsIssue
   end
 
   def model_name
-    ActiveModel::Name.new(self.class, nil, "BeadsIssue")
+    @model_name ||= ActiveModel::Name.new(self.class, nil, "Issue")
+  end
+
+  # For polymorphic_path to work with form_with
+  def to_model
+    self
   end
 
   # Priority display helpers
@@ -174,6 +179,18 @@ class BeadsIssue
     has_label?("fizzy:not-now")
   end
 
+  def postponed_at
+    updated_at if postponed?
+  end
+
+  def postponed_by
+    nil  # Beads doesn't track who postponed
+  end
+
+  def closed_by
+    creator  # Assume same creator closed it
+  end
+
   def active?
     !closed? && !postponed?
   end
@@ -198,15 +215,98 @@ class BeadsIssue
     false  # Beads doesn't track attachments
   end
 
+  def last_active_at
+    updated_at || created_at
+  end
+
+  def steps
+    []  # Beads doesn't have steps/checklists
+  end
+
+  def comments
+    return @comments_collection if @comments_collection
+
+    # Fetch comments from beads and wrap in BeadsComment objects
+    return [] unless board.respond_to?(:beads_client)
+
+    comment_data = board.beads_client.list_comments(id)
+    @comments_collection = CommentCollection.new(
+      comment_data.map do |data|
+        comment = BeadsComment.new(data)
+        comment.card = self
+        comment.board = board
+        comment
+      end
+    )
+  end
+
+  # Collection wrapper to provide ActiveRecord-like interface
+  class CommentCollection < Array
+    def preloaded
+      self
+    end
+
+    def chronologically
+      sort_by { |c| c.created_at || Time.at(0) }
+    end
+  end
+
+  # Image handling via markdown cover convention
+  # Images stored in .beads/images/ and referenced as ![cover](images/filename.png)
+  def cover_image_path
+    return nil if description.blank?
+
+    first_line = description.lines.first&.strip
+    return nil unless first_line
+
+    # Match ![cover](path) or ![cover](url)
+    match = first_line.match(/^\!\[cover\]\((.+?)\)/)
+    match ? match[1] : nil
+  end
+
+  def description_without_cover
+    return description if cover_image_path.nil?
+    description.lines[1..-1]&.join || ""
+  end
+
+  def cover_image_url
+    path = cover_image_path
+    return nil unless path
+
+    # If it's a full URL, return as-is
+    return path if path.start_with?("http://", "https://")
+
+    # Otherwise, use Rails route helper
+    Rails.application.routes.url_helpers.beads_image_path(
+      board_id: board.id,
+      path: path.sub(/^images\//, "")
+    )
+  end
+
   # Association stubs for view compatibility
   def column
     nil
   end
 
   def creator
-    OpenStruct.new(
-      name: assignee || "Beads",
-      familiar_name: assignee || "Beads"
+    # Use the built-in Beads user (hi@fizzybeads.com)
+    return @creator if @creator
+
+    if board.respond_to?(:account) && board.account
+      beads_identity = Identity.find_by(email_address: "hi@fizzybeads.com")
+      if beads_identity
+        @creator = beads_identity.users.find_by(account: board.account)
+        return @creator if @creator
+      end
+    end
+
+    # Fallback to fake user if Beads user doesn't exist
+    account = board.respond_to?(:account) && board.account ? board.account : OpenStruct.new(slug: "")
+    @creator = OpenStruct.new(
+      name: "Beads",
+      familiar_name: "Beads",
+      to_param: "beads",
+      account: account
     )
   end
 
@@ -219,15 +319,58 @@ class BeadsIssue
   end
 
   def assignees
-    assignee.present? ? [OpenStruct.new(name: assignee, familiar_name: assignee)] : []
+    return [] if assignee.blank?
+
+    # Try to find a User in the current account via Identity email lookup
+    user = assignee_user
+    if user
+      [user]
+    else
+      # Create a fake user object for display
+      [OpenStruct.new(
+        name: assignee,
+        familiar_name: assignee,
+        to_param: assignee.parameterize,
+        id: nil
+      )]
+    end
+  end
+
+  def assignee_user
+    return nil if assignee.blank?
+    return nil unless board.respond_to?(:account) && board.account
+
+    identity = Identity.find_by(email_address: assignee)
+    return nil unless identity
+
+    identity.users.find_by(account: board.account)
   end
 
   def tags
-    non_fizzy_labels.map { |l| OpenStruct.new(title: l) }
+    all_labels = []
+
+    # Add priority tag
+    all_labels << "p#{priority}" if priority.present?
+
+    # Add type tag (skip default 'task')
+    all_labels << issue_type if issue_type.present? && issue_type != "task"
+
+    # Add regular labels
+    all_labels += non_fizzy_labels
+
+    all_labels.map { |l| OpenStruct.new(title: l, id: nil) }
   end
 
   def image
-    OpenStruct.new(attached?: false)
+    if cover_image_path.present?
+      OpenStruct.new(
+        attached?: true,
+        url: cover_image_url,
+        presence: cover_image_url
+      )
+    else
+      OpenStruct.new(attached?: false, url: nil, presence: nil)
+    end
   end
 
   # Type check

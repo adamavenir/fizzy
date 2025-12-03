@@ -1,5 +1,6 @@
 <% not_now_count = board.beads_enabled? ? board.beads_client.list(status: "open", labels: ["fizzy:not-now"]).size : board.cards.postponed.count %>
-<%= column_tag id: "not-now", name: "Not Now", drop_url: columns_card_drops_not_now_path("__id__"), class: "cards--on-deck", style: "--card-color: var(--color-card-complete);",
+<% not_now_drop_url = board.beads_enabled? ? issue_not_now_path(board_id: board.id, issue_issue_id: "__id__") : columns_card_drops_not_now_path("__id__") %>
+<%= column_tag id: "not-now", name: "Not Now", drop_url: not_now_drop_url, class: "cards--on-deck", style: "--card-color: var(--color-card-complete);",
   data: {
     collapsible_columns_target: "column",
     drag_and_strum_target: "container",

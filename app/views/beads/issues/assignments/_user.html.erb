@@ -1,0 +1,8 @@
+<li class="popup__item" data-filter-target="item" data-navigable-list-target="item" aria-checked="<%= card.assignee == user.identity.email_address %>">
+  <%= button_to issue_assignments_path(board_id: card.board.id, issue_issue_id: card.id, assignee_id: user.id), method: :post,
+        class: "popup__btn btn", form_class: "max-width flex-item-grow" do %>
+    <span class="overflow-ellipsis flex-item-grow"><%= local_assigns.fetch(:user_label, user.name) %></span>
+    <%= yield if block_given? %>
+    <%= icon_tag "check", size: 18, class: "checked flex-item-no-shrink flex-item-justify-end", style: "--icon-size: 1em" %>
+  <% end %>
+</li>

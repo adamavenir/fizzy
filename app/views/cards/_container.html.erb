@@ -34,7 +34,9 @@
       <% end %>
     </div>
 
-    <% if card.published? %>
+    <% if card.is_a?(BeadsIssue) %>
+      <%= render "cards/container/footer/beads", card: card %>
+    <% elsif card.published? %>
       <%= render "cards/container/footer/published", card: card %>
     <% elsif card.drafted? %>
       <%= render "cards/container/footer/draft", card: card %>

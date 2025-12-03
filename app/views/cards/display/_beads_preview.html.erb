@@ -2,17 +2,15 @@
 
 <%= card_article_tag card, class: "card", draggable: draggable, data: { id: card.id, drag_and_drop_target: "item", navigable_list_target: "item" }, tabindex: 0 do %>
   <div class="flex flex-column flex-item-grow max-inline-size">
+    <%= link_to issue_path(board_id: card.board.id, issue_id: card.id), draggable: false, class: "card__link", title: card.title, data: { action: "dialog#close", turbo_frame: "_top" } do %>
+      <span class="for-screen-reader"><%= card.title %></span>
+    <% end %>
     <header class="card__header">
       <label class="card__board">
         <span class="card__id">
           <span class="for-screen-reader">Card number</span>
           <%= card.number %>
         </span>
-        <% if card.priority && card.priority <= 1 %>
-          <span class="card__priority txt-x-small txt-uppercase font-weight-bold" style="color: <%= card.priority == 0 ? 'var(--color-negative)' : 'var(--color-warning)' %>; margin-left: 0.25rem;">
-            P<%= card.priority %>
-          </span>
-        <% end %>
         <span class="card__board-name">
           <span class="overflow-ellipsis"><%= card.board.name %></span>
         </span>
@@ -65,7 +63,11 @@
       <% if card.assignee.present? %>
         <span class="card__meta-text card__meta-text--assignees overflow-ellipsis">
           <%= icon_tag("arrow-right", aria: { label: "Assigned to" }) %>
-          <%= card.assignee %>
+          <% if (user = card.assignee_user) %>
+            <%= user.familiar_name %>
+          <% else %>
+            <%= card.assignee %>
+          <% end %>
         </span>
       <% end %>
     </div>
