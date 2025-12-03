@@ -32,10 +32,22 @@ class BeadsIssue
   attribute :acceptance_criteria, :string
   attribute :notes, :string
   attribute :external_ref, :string
+  attribute :dependency_count, :integer, default: 0
+  attribute :blocked_by, default: -> { [] }
+  attribute :blocks, default: -> { [] }
+
+  KNOWN_ATTRIBUTES = %i[
+    id title description status priority issue_type assignee labels
+    created_at updated_at closed_at comments dependencies design
+    acceptance_criteria notes external_ref dependency_count blocked_by blocks
+  ].freeze
 
   def initialize(attributes = {})
     # Handle both symbol and string keys
     attrs = attributes.is_a?(Hash) ? attributes.deep_symbolize_keys : {}
+
+    # Filter to known attributes only (beads may return extra fields)
+    attrs = attrs.slice(*KNOWN_ATTRIBUTES)
 
     # Parse datetime strings
     %i[created_at updated_at closed_at].each do |field|
@@ -47,12 +59,15 @@ class BeadsIssue
     super(attrs)
   end
 
+  # Short ID for display (just the hash part)
+  def short_id
+    return "" if id.blank?
+    id.split("-").last&.upcase || id
+  end
+
   # Fizzy compatibility: fake number for display
-  # Converts hex portion of ID to a 4-digit display number
   def number
-    return 0 if id.blank?
-    hex_part = id.gsub(/^bd-/, "")
-    hex_part.to_i(16) % 10000
+    short_id
   end
 
   def closed?
@@ -189,15 +204,22 @@ class BeadsIssue
   end
 
   def creator
-    OpenStruct.new(name: assignee || "Unknown")
+    OpenStruct.new(
+      name: assignee || "Beads",
+      familiar_name: assignee || "Beads"
+    )
   end
 
   def board
-    nil  # Will be set by the view if needed
+    @board ||= OpenStruct.new(name: "")
+  end
+
+  def board=(b)
+    @board = b
   end
 
   def assignees
-    assignee.present? ? [OpenStruct.new(name: assignee)] : []
+    assignee.present? ? [OpenStruct.new(name: assignee, familiar_name: assignee)] : []
   end
 
   def tags

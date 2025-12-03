@@ -26,9 +26,11 @@
   <%= render "boards/show/stream", board: board, page: page %>
 
   <div class="card-columns__right">
-    <%= render partial: "boards/show/column", collection: board.columns.sorted, cached: ->(column){ [ column, column.leftmost?, column.rightmost? ] } %>
+    <%= render partial: "boards/show/column", collection: board.columns.sorted, cached: (board.beads_enabled? ? false : ->(column){ [ column, column.leftmost?, column.rightmost? ] }) %>
     <%= render "boards/show/closed", board: board %>
 
-    <%= render "boards/show/menu/columns", board: board %>
+    <% unless board.beads_enabled? %>
+      <%= render "boards/show/menu/columns", board: board %>
+    <% end %>
   </div>
 <% end %>

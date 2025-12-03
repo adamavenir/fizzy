@@ -10,7 +10,7 @@
   </header>
   <%= render "columns/show/add_card_button", board: board %>
   <% if page.used? %>
-    <%= with_automatic_pagination "the-stream", @page do %>
+    <%= with_automatic_pagination "the-stream", page do %>
       <%= render "boards/columns/list", cards: page.records, draggable: true %>
     <% end %>
   <% end %>

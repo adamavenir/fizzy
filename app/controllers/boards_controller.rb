@@ -17,13 +17,14 @@ class BoardsController < ApplicationController
   end
 
   def create
-    @board = Board.create! board_params.with_defaults(all_access: true)
+    @board = Board.new(board_params.with_defaults(all_access: true))
 
-    if @board.beads_enabled?
-      @board.create_default_beads_columns
+    if @board.save
+      @board.create_default_beads_columns if @board.beads_enabled?
+      redirect_to board_path(@board)
+    else
+      render :new, status: :unprocessable_entity
     end
-
-    redirect_to board_path(@board)
   end
 
   def edit
@@ -69,9 +70,16 @@ class BoardsController < ApplicationController
     end
 
     def show_columns
-      cards = @board.cards.awaiting_triage.latest.with_golden_first.preloaded
-      set_page_and_extract_portion_from cards
-      fresh_when etag: [ @board, @page.records, @user_filtering ]
+      if @board.beads_enabled?
+        # Show beads issues with fizzy:maybe label (triage inbox)
+        issues = @board.beads_client.list(status: "open", labels: ["fizzy:maybe"])
+        @beads_cards = issues.map { |data| BeadsIssue.new(data) }
+        @page = OpenStruct.new(records: @beads_cards, used?: @beads_cards.any?)
+      else
+        cards = @board.cards.awaiting_triage.latest.with_golden_first.preloaded
+        set_page_and_extract_portion_from cards
+        fresh_when etag: [ @board, @page.records, @user_filtering ]
+      end
     end
 
     def board_params

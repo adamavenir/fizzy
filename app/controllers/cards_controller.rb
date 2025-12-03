@@ -10,6 +10,11 @@ class CardsController < ApplicationController
   end
 
   def create
+    if @board.beads_enabled?
+      redirect_to @board, alert: "Cards on this board are managed through Beads"
+      return
+    end
+
     card = @board.cards.find_or_create_by!(creator: Current.user, status: "drafted")
     redirect_to card
   end

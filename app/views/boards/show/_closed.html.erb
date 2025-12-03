@@ -1,3 +1,4 @@
+<% closed_count = board.beads_enabled? ? board.beads_client.list(status: "closed").size : board.cards.closed.count %>
 <%= column_tag id: "closed-cards", name: "Done", drop_url: columns_card_drops_closure_path("__id__"), class: "cards--closed", style: "--card-color: var(--color-card-complete);",
   data: {
     drag_and_strum_target: "container",
@@ -5,7 +6,7 @@
     action: "focus->collapsible-columns#focusOnColumn"
   } do %>
   <header class="cards__header">
-    <%= render "boards/show/expander", title: "Done", count: board.cards.closed.count, column_id: "closed-cards" %>
+    <%= render "boards/show/expander", title: "Done", count: closed_count, column_id: "closed-cards" %>
     <%= render "boards/show/menu/maximize", column_path: board_columns_closed_path(board) %>
   </header>
   <%= column_frame_tag :closed_column, src: board_columns_closed_path(board) %>

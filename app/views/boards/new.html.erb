@@ -3,11 +3,20 @@
 <div class="panel panel--centered">
   <%= form_with model: @board, class: "flex flex-column gap", data: { controller: "form" } do |form| %>
     <h1 class="txt-x-large margin-none font-weight-black"><%= @page_title %></h1>
+
+    <% if @board.errors.any? %>
+      <div class="flash flash--error">
+        <% @board.errors.full_messages.each do |message| %>
+          <p><%= message %></p>
+        <% end %>
+      </div>
+    <% end %>
+
     <%= form.text_field :name, required: true, class: "input full-width", autofocus: true, autocomplete: "off",placeholder: "Name it…", data: { action: "keydown.esc@document->form#cancel" } %>
 
     <div class="flex flex-column gap-half">
       <label for="board_repo_path" class="txt-small translucent">Beads repository path (optional)</label>
-      <%= form.text_field :repo_path, class: "input full-width", autocomplete: "off", placeholder: "/path/to/project" %>
+      <%= form.text_field :repo_path, class: "input full-width #{'input--error' if @board.errors[:repo_path].any?}", autocomplete: "off", placeholder: "/path/to/project" %>
       <p class="txt-x-small translucent">Link to a directory with a .beads folder to sync cards with Beads issues</p>
     </div>
 

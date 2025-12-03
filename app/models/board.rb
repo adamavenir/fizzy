@@ -29,16 +29,15 @@ class Board < ApplicationRecord
     BeadsCardQuery.new(self).for_column(column)
   end
 
-  # Creates default columns for the hybrid fizzy/beads model
+  # Creates execution columns for beads integration.
+  # Fizzy's built-in columns handle triage (Maybe?, Not Now) and closed.
+  # These columns show beads issues by status.
   def create_default_beads_columns
     colors = Color::COLORS.map(&:value)
     [
-      { name: "Maybe",       position: 0, column_type: :fizzy_tag,    beads_value: "fizzy:maybe",   color: colors[2] },  # Tan
-      { name: "Not Now",     position: 1, column_type: :fizzy_tag,    beads_value: "fizzy:not-now", color: colors[1] },  # Gray
-      { name: "Open",        position: 2, column_type: :beads_status, beads_value: "open",          color: colors[0] },  # Blue
-      { name: "In Progress", position: 3, column_type: :beads_status, beads_value: "in_progress",   color: colors[3] },  # Yellow
-      { name: "Blocked",     position: 4, column_type: :beads_status, beads_value: "blocked",       color: colors[8] },  # Pink
-      { name: "Done",        position: 5, column_type: :beads_status, beads_value: "closed",        color: colors[4] }   # Lime
+      { name: "Open",        position: 0, column_type: :beads_status, beads_value: "open",        color: colors[0] },  # Blue
+      { name: "In Progress", position: 1, column_type: :beads_status, beads_value: "in_progress", color: colors[3] },  # Yellow
+      { name: "Blocked",     position: 2, column_type: :beads_status, beads_value: "blocked",     color: colors[8] }   # Pink
     ].each { |attrs| columns.create!(attrs) }
   end
 

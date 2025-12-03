@@ -1,15 +1,35 @@
 <% draggable = local_assigns.fetch(:draggable, false) %>
 
-<article id="<%= card.dom_id %>" class="card <%= 'golden-effect' if card.golden? %> <%= 'card--postponed' if card.postponed? %>" style="--card-color: <%= card.color %>;" draggable="<%= draggable %>" data-id="<%= card.id %>" data-drag-and-drop-target="item" data-navigable-list-target="item" tabindex="0">
+<%= card_article_tag card, class: "card", draggable: draggable, data: { id: card.id, drag_and_drop_target: "item", navigable_list_target: "item" }, tabindex: 0 do %>
   <div class="flex flex-column flex-item-grow max-inline-size">
     <header class="card__header">
-      <% card.tags.each do |tag| %>
-        <span class="tag"><%= tag.title %></span>
-      <% end %>
+      <label class="card__board">
+        <span class="card__id">
+          <span class="for-screen-reader">Card number</span>
+          <%= card.number %>
+        </span>
+        <% if card.priority && card.priority <= 1 %>
+          <span class="card__priority txt-x-small txt-uppercase font-weight-bold" style="color: <%= card.priority == 0 ? 'var(--color-negative)' : 'var(--color-warning)' %>; margin-left: 0.25rem;">
+            P<%= card.priority %>
+          </span>
+        <% end %>
+        <span class="card__board-name">
+          <span class="overflow-ellipsis"><%= card.board.name %></span>
+        </span>
+      </label>
 
-      <span class="btn justify-start card__column-name txt-uppercase min-width max-width">
-        <span class="overflow-ellipsis txt-x-small"><%= card.status %></span>
-      </span>
+      <% if card.tags.any? %>
+        <div class="card__tags">
+          <%= icon_tag "tag-outline", class: "translucent" %>
+          <div class="min-width overflow-ellipsis">
+            <% card.tags.each_with_index do |tag, index| %>
+              <span class="card__tag btn btn--plain overflow-ellipsis">
+                <%= tag.title %><%= "," unless index == card.tags.size - 1 %>
+              </span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
     </header>
 
     <div class="card__body justify-space-between">
@@ -23,19 +43,42 @@
 
   <footer class="card__footer">
     <div class="card__meta">
-      <span class="txt-small translucent">
-        <%= card.id %>
+      <div class="card__meta-avatars card__meta-avatars--author">
+        <%= image_tag "logo.png", alt: card.creator.familiar_name, class: "avatar", size: 32 %>
+      </div>
+
+      <span class="card__meta-text card__meta-text--added">
+        Added <%= local_datetime_tag(card.created_at, style: :daysago) if card.created_at %>
       </span>
-      <% if card.priority && card.priority < 2 %>
-        <span class="txt-small txt-uppercase" style="color: <%= card.priority == 0 ? 'var(--color-negative)' : 'var(--color-warning)' %>">
-          P<%= card.priority %>
+
+      <span class="card__meta-text card__meta-text--author">
+        <%= card.creator.familiar_name %>
+      </span>
+
+      <% if card.updated_at && card.updated_at != card.created_at %>
+        <span class="card__meta-text card__meta-text--updated overflow-ellipsis">
+          <%= icon_tag "refresh--meta", aria: { label: "Last updated" } %>
+          <%= local_datetime_tag(card.updated_at, style: :daysago) %>
         </span>
       <% end %>
+
       <% if card.assignee.present? %>
-        <span class="txt-small translucent">
-          @<%= card.assignee %>
+        <span class="card__meta-text card__meta-text--assignees overflow-ellipsis">
+          <%= icon_tag("arrow-right", aria: { label: "Assigned to" }) %>
+          <%= card.assignee %>
         </span>
       <% end %>
     </div>
   </footer>
-</article>
+
+  <% if card.closed? %>
+    <div class="card__closed">
+      <span class="card__closed-title" data-text="Done">Done</span>
+      <strong class="card__closed-date"><%= card.closed_at.strftime("%b %d, %Y") if card.closed_at %></strong>
+    </div>
+  <% elsif card.postponed? %>
+    <div class="card__closed">
+      <span class="card__closed-title" data-text="Not Now">Not Now</span>
+    </div>
+  <% end %>
+<% end %>
