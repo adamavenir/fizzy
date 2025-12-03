@@ -1,0 +1,41 @@
+<% draggable = local_assigns.fetch(:draggable, false) %>
+
+<article id="<%= card.dom_id %>" class="card <%= 'golden-effect' if card.golden? %> <%= 'card--postponed' if card.postponed? %>" style="--card-color: <%= card.color %>;" draggable="<%= draggable %>" data-id="<%= card.id %>" data-drag-and-drop-target="item" data-navigable-list-target="item" tabindex="0">
+  <div class="flex flex-column flex-item-grow max-inline-size">
+    <header class="card__header">
+      <% card.tags.each do |tag| %>
+        <span class="tag"><%= tag.title %></span>
+      <% end %>
+
+      <span class="btn justify-start card__column-name txt-uppercase min-width max-width">
+        <span class="overflow-ellipsis txt-x-small"><%= card.status %></span>
+      </span>
+    </header>
+
+    <div class="card__body justify-space-between">
+      <div class="card__content">
+        <h3 class="card__title overflow-line-clamp">
+          <%= card.title || "Untitled" %>
+        </h3>
+      </div>
+    </div>
+  </div>
+
+  <footer class="card__footer">
+    <div class="card__meta">
+      <span class="txt-small translucent">
+        <%= card.id %>
+      </span>
+      <% if card.priority && card.priority < 2 %>
+        <span class="txt-small txt-uppercase" style="color: <%= card.priority == 0 ? 'var(--color-negative)' : 'var(--color-warning)' %>">
+          P<%= card.priority %>
+        </span>
+      <% end %>
+      <% if card.assignee.present? %>
+        <span class="txt-small translucent">
+          @<%= card.assignee %>
+        </span>
+      <% end %>
+    </div>
+  </footer>
+</article>

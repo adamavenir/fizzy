@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2025_12_01_100607) do
+ActiveRecord::Schema[8.2].define(version: 2025_12_02_000002) do
   create_table "accesses", id: :uuid, force: :cascade do |t|
     t.datetime "accessed_at"
     t.uuid "account_id", null: false
@@ -148,6 +148,7 @@ ActiveRecord::Schema[8.2].define(version: 2025_12_01_100607) do
     t.datetime "created_at", null: false
     t.uuid "creator_id", null: false
     t.string "name", limit: 255, null: false
+    t.string "repo_path"
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_boards_on_account_id"
     t.index ["creator_id"], name: "index_boards_on_creator_id"
@@ -238,8 +239,10 @@ ActiveRecord::Schema[8.2].define(version: 2025_12_01_100607) do
 
   create_table "columns", id: :uuid, force: :cascade do |t|
     t.uuid "account_id", null: false
+    t.string "beads_value"
     t.uuid "board_id", null: false
     t.string "color", limit: 255, null: false
+    t.integer "column_type", default: 0, null: false
     t.datetime "created_at", null: false
     t.string "name", limit: 255, null: false
     t.integer "position", default: 0, null: false

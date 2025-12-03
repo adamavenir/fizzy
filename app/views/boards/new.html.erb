@@ -5,6 +5,12 @@
     <h1 class="txt-x-large margin-none font-weight-black"><%= @page_title %></h1>
     <%= form.text_field :name, required: true, class: "input full-width", autofocus: true, autocomplete: "off",placeholder: "Name it…", data: { action: "keydown.esc@document->form#cancel" } %>
 
+    <div class="flex flex-column gap-half">
+      <label for="board_repo_path" class="txt-small translucent">Beads repository path (optional)</label>
+      <%= form.text_field :repo_path, class: "input full-width", autocomplete: "off", placeholder: "/path/to/project" %>
+      <p class="txt-x-small translucent">Link to a directory with a .beads folder to sync cards with Beads issues</p>
+    </div>
+
     <button type="submit" class="btn btn--link center">
       <span>Create board</span>
       <%= icon_tag "arrow-right" %>

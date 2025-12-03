@@ -18,6 +18,11 @@ class BoardsController < ApplicationController
 
   def create
     @board = Board.create! board_params.with_defaults(all_access: true)
+
+    if @board.beads_enabled?
+      @board.create_default_beads_columns
+    end
+
     redirect_to board_path(@board)
   end
 
@@ -70,7 +75,7 @@ class BoardsController < ApplicationController
     end
 
     def board_params
-      params.expect(board: [ :name, :all_access, :auto_postpone_period, :public_description ])
+      params.expect(board: [ :name, :all_access, :auto_postpone_period, :public_description, :repo_path ])
     end
 
     def grantees

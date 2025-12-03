@@ -1,1 +1,5 @@
-<%= render partial: "cards/display/preview", collection: cards, as: :card, locals: { draggable: local_assigns.fetch(:draggable, false) }, cached: true %>
+<% if cards.first.is_a?(BeadsIssue) %>
+  <%= render partial: "cards/display/beads_preview", collection: cards, as: :card, locals: { draggable: local_assigns.fetch(:draggable, false) } %>
+<% else %>
+  <%= render partial: "cards/display/preview", collection: cards, as: :card, locals: { draggable: local_assigns.fetch(:draggable, false) }, cached: true %>
+<% end %>

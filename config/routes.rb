@@ -231,6 +231,17 @@ Rails.application.routes.draw do
     route_for :board_webhook, webhook.board, webhook, options
   end
 
+  # Beads integration routes
+  scope :beads do
+    scope "boards/:board_id" do
+      resources :issues, param: :issue_id, controller: "beads/issues", only: [:show] do
+        scope module: "beads/issues" do
+          resource :column_drop, only: :create
+        end
+      end
+    end
+  end
+
   get "up", to: "rails/health#show", as: :rails_health_check
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   get "service-worker" => "pwa#service_worker"
