@@ -2,6 +2,25 @@ class Beads::IssuesController < ApplicationController
   before_action :set_board
   before_action :set_issue, only: [:show, :edit, :update]
 
+  def create
+    client = @board.beads_client
+
+    # Create issue in beads with fizzy:maybe label for triage
+    result = client.create(
+      title: "New card",
+      status: "open",
+      assignee: Current.user.identity.email_address
+    )
+
+    # Add fizzy:maybe label to put in Maybe? column
+    client.add_label(result["id"], "fizzy:maybe")
+
+    # Redirect to the new issue
+    redirect_to beads_board_issue_path(@board, result["id"])
+  rescue BeadsClient::Error => e
+    redirect_to board_path(@board), alert: "Failed to create card: #{e.message}"
+  end
+
   def show
     respond_to do |format|
       format.html

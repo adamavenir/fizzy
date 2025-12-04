@@ -241,8 +241,9 @@ Rails.application.routes.draw do
     get "images/:board_id/*path", to: "beads/images#show", as: :beads_image
 
     scope "boards/:board_id" do
-      resources :issues, param: :issue_id, controller: "beads/issues", only: [:show, :edit, :update] do
+      resources :issues, param: :issue_id, controller: "beads/issues", only: [:show, :edit, :update, :create] do
         scope module: "beads/issues" do
+          resource :column, only: :edit
           resource :column_drop, only: :create
           resource :image, only: [:create, :destroy]
           resource :goldness, only: [:create, :destroy]

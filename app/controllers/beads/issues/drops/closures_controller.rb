@@ -15,7 +15,9 @@ class Beads::Issues::Drops::ClosuresController < ApplicationController
     # Close the issue
     client.close(@issue.id)
 
-    head :ok
+    # Reload and refresh the card container
+    reload_issue
+    render turbo_stream: turbo_stream.replace([@issue, :card_container], partial: "cards/container", method: :morph, locals: { card: @issue })
   rescue BeadsClient::Error => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
@@ -28,5 +30,12 @@ class Beads::Issues::Drops::ClosuresController < ApplicationController
     def set_issue
       issue_data = @board.beads_client.show(params[:issue_issue_id])
       @issue = BeadsIssue.new(issue_data)
+      @issue.board = @board
+    end
+
+    def reload_issue
+      issue_data = @board.beads_client.show(@issue.id)
+      @issue = BeadsIssue.new(issue_data)
+      @issue.board = @board
     end
 end

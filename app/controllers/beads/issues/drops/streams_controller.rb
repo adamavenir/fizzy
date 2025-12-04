@@ -16,7 +16,9 @@ class Beads::Issues::Drops::StreamsController < ApplicationController
     client.add_label(@issue.id, "fizzy:maybe")
     client.update(@issue.id, status: "open")
 
-    head :ok
+    # Reload and refresh the card container
+    reload_issue
+    render turbo_stream: turbo_stream.replace([@issue, :card_container], partial: "cards/container", method: :morph, locals: { card: @issue })
   rescue BeadsClient::Error => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
@@ -29,5 +31,12 @@ class Beads::Issues::Drops::StreamsController < ApplicationController
     def set_issue
       issue_data = @board.beads_client.show(params[:issue_issue_id])
       @issue = BeadsIssue.new(issue_data)
+      @issue.board = @board
+    end
+
+    def reload_issue
+      issue_data = @board.beads_client.show(@issue.id)
+      @issue = BeadsIssue.new(issue_data)
+      @issue.board = @board
     end
 end

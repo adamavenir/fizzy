@@ -1,0 +1,41 @@
+<%= turbo_frame_tag @card, :columns do %>
+  <div class="card__stages" role="radiogroup">
+    <legend class="for-screen-reader">Choose a column for this card</legend>
+
+    <%= button_to "Not now", issue_not_now_path(board_id: @board, issue_issue_id: @issue),
+        class: [ "card__column-name btn", { "card__column-name--current": @card.postponed? } ],
+        style: "--column-color: var(--color-card-complete)",
+        role: "radio",
+        aria: { checked: @card.postponed? },
+        form_class: "flex align-center gap-half",
+        data: { turbo_frame: "_top" } %>
+
+    <%= button_to "Maybe?", issue_stream_path(board_id: @board, issue_issue_id: @issue),
+        class: [ "card__column-name card__column-name--stream btn", { "card__column-name--current": @card.in_triage? && !@card.postponed? } ],
+        style: "--column-color: var(--color-card-default)",
+        role: "radio",
+        aria: { checked: @card.in_triage? && !@card.postponed? },
+        form_class: "flex align-center gap-half",
+        data: { turbo_frame: "_top" } %>
+
+    <% @columns.each do |column| %>
+      <%= button_to \
+            tag.span(column.name, class: "overflow-ellipsis"),
+            issue_column_drop_path(board_id: @board, issue_issue_id: @issue, column_id: column),
+            class: [ "card__column-name btn", { "card__column-name--current": @card.status == column.beads_value && !@card.in_triage? } ],
+            style: "--column-color: #{column.color}",
+            form_class: "flex align-center gap-half",
+            role: "radio",
+            aria: { checked: @card.status == column.beads_value && !@card.in_triage? },
+            data: { turbo_frame: "_top" } %>
+    <% end %>
+
+    <%= button_to "Done", issue_closure_path(board_id: @board, issue_issue_id: @issue),
+        class: [ "card__column-name btn", { "card__column-name--current": @card.closed? } ],
+        style: "--column-color: var(--color-card-complete)",
+        role: "radio",
+        aria: { checked: @card.closed? },
+        form_class: "flex align-center gap-half",
+        data: { turbo_frame: "_top" } %>
+  </div>
+<% end %>
