@@ -1,4 +1,14 @@
-<% closed_count = board.beads_enabled? ? board.beads_client.list(status: "closed").size : board.cards.closed.count %>
+<%
+  closed_count = if board.beads_enabled?
+    begin
+      board.beads_client.list(status: "closed").size
+    rescue BeadsClient::Error
+      0
+    end
+  else
+    board.cards.closed.count
+  end
+%>
 <% closure_drop_url = board.beads_enabled? ? issue_closure_path(board_id: board.id, issue_issue_id: "__id__") : columns_card_drops_closure_path("__id__") %>
 <%= column_tag id: "closed-cards", name: "Done", drop_url: closure_drop_url, class: "cards--closed", style: "--card-color: var(--color-card-complete);",
   data: {

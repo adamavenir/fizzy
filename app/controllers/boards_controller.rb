@@ -75,14 +75,23 @@ class BoardsController < ApplicationController
 
     def show_columns
       if @board.beads_enabled?
-        # Show beads issues with fizzy:maybe label (triage inbox)
-        issues = @board.beads_client.list(status: "open", labels: ["fizzy:maybe"])
-        @beads_cards = issues.map do |data|
-          issue = BeadsIssue.new(data)
-          issue.board = @board
-          issue
+        begin
+          # Test connection first to trigger auto-start or get meaningful error
+          @board.beads_client.ping
+
+          # Show beads issues with fizzy:maybe label (triage inbox)
+          issues = @board.beads_client.list(status: "open", labels: ["fizzy:maybe"])
+          @beads_cards = issues.map do |data|
+            issue = BeadsIssue.new(data)
+            issue.board = @board
+            issue
+          end
+          @page = OpenStruct.new(records: @beads_cards, used?: @beads_cards.any?)
+        rescue BeadsClient::Error => e
+          @beads_error = e.message
+          flash.now[:alert] = e.message
+          @page = OpenStruct.new(records: [], used?: false)
         end
-        @page = OpenStruct.new(records: @beads_cards, used?: @beads_cards.any?)
       else
         cards = @board.cards.awaiting_triage.latest.with_golden_first.preloaded
         set_page_and_extract_portion_from cards

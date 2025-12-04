@@ -163,7 +163,7 @@ class BeadsIssue
   end
 
   def non_fizzy_labels
-    labels&.reject { |l| l.start_with?("fizzy:") } || []
+    labels&.reject { |l| l.start_with?("fizzy:") || l.start_with?("creator:") } || []
   end
 
   def in_triage?
@@ -289,9 +289,20 @@ class BeadsIssue
   end
 
   def creator
-    # Use the built-in Beads user (hi@fizzybeads.com)
     return @creator if @creator
 
+    # First, try to find creator from the creator: label
+    creator_label = labels&.find { |l| l.start_with?("creator:") }
+    if creator_label && board.respond_to?(:account) && board.account
+      creator_email = creator_label.sub("creator:", "")
+      identity = Identity.find_by(email_address: creator_email)
+      if identity
+        @creator = identity.users.find_by(account: board.account)
+        return @creator if @creator
+      end
+    end
+
+    # Fallback to built-in Beads user (hi@fizzybeads.com)
     if board.respond_to?(:account) && board.account
       beads_identity = Identity.find_by(email_address: "hi@fizzybeads.com")
       if beads_identity

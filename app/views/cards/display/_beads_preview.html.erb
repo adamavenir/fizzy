@@ -42,7 +42,7 @@
   <footer class="card__footer">
     <div class="card__meta">
       <div class="card__meta-avatars card__meta-avatars--author">
-        <%= image_tag "logo.png", alt: card.creator.familiar_name, class: "avatar", size: 32 %>
+        <%= avatar_tag card.creator, tabindex: -1 %>
       </div>
 
       <span class="card__meta-text card__meta-text--added">

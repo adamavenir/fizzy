@@ -1,4 +1,12 @@
-<% card_count = column.board.beads_enabled? ? column.beads_cards.size : column.cards.active.count %>
+<%
+  card_count = if column.board.beads_enabled? && !@beads_error
+    column.beads_cards.size
+  elsif column.board.beads_enabled?
+    0
+  else
+    column.cards.active.count
+  end
+%>
 <% drop_url = column.board.beads_enabled? ? issue_column_drop_path(board_id: column.board.id, issue_issue_id: "__id__", column_id: column.id) : columns_card_drops_column_path("__id__", column_id: column.id) %>
 <%= column_tag id: dom_id(column), name: column.name, drop_url: drop_url, class: "cards--doing", style: "--card-color: #{column.color};",
   data: {

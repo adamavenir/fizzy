@@ -17,6 +17,9 @@ class BeadsCardQuery
 
     issues = fetch_issues_for_column(column)
     sort_issues(wrap_issues(issues))
+  rescue BeadsClient::DaemonNotRunningError => e
+    Rails.logger.warn("BeadsCardQuery: Daemon not running for board #{@board.id}")
+    []
   end
 
   # Returns all BeadsIssue objects for the board
@@ -24,6 +27,9 @@ class BeadsCardQuery
     return [] unless @client
     issues = @client.list
     sort_issues(wrap_issues(issues))
+  rescue BeadsClient::DaemonNotRunningError => e
+    Rails.logger.warn("BeadsCardQuery: Daemon not running for board #{@board.id}")
+    []
   end
 
   private

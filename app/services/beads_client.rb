@@ -46,9 +46,8 @@ class BeadsClient
       labels:,
       priority:,
       issue_type:,
-      assignee:,
-      actor:
-    }.compact)
+      assignee:
+    }.compact, actor: actor)
   end
 
   def update(id, status: nil, title: nil, description: nil, priority: nil, assignee: nil, add_labels: nil, remove_labels: nil)
@@ -126,7 +125,7 @@ class BeadsClient
       sock
     end
 
-    def rpc(operation, args)
+    def rpc(operation, args, actor: nil)
       ensure_daemon_running unless operation == "ping"
 
       request = {
@@ -134,6 +133,7 @@ class BeadsClient
         args:,
         cwd: @repo_path
       }
+      request[:actor] = actor if actor.present?
 
       send_request(request)
     end
@@ -165,7 +165,9 @@ class BeadsClient
       path = socket_path
 
       unless File.exist?(path)
-        raise DaemonNotRunningError, "Daemon socket not found at #{path}. Is the daemon running? Try: bd daemon start"
+        # Try to start the daemon automatically
+        start_daemon
+        wait_for_daemon
       end
 
       begin
@@ -193,8 +195,15 @@ class BeadsClient
         raise Error, "No .beads directory found at #{@repo_path}. Run 'bd init' first."
       end
 
+      # Check if it's a git repo (required for daemon)
+      unless File.directory?(File.join(@repo_path, ".git"))
+        raise Error, "Beads daemon requires a git repository. Run: cd #{@repo_path} && git init && bd doctor"
+      end
+
       # Start daemon in background
-      system("bd", "daemon", "start", "--cwd", @repo_path, out: File::NULL, err: File::NULL)
+      Rails.logger.info("BeadsClient: Starting daemon for #{@repo_path}")
+      result = system("bd", "daemon", "start", "--cwd", @repo_path, out: File::NULL, err: File::NULL)
+      Rails.logger.info("BeadsClient: Daemon start result: #{result}")
     end
 
     def wait_for_daemon
@@ -204,6 +213,6 @@ class BeadsClient
         sleep 0.1
       end
 
-      raise DaemonNotRunningError, "Daemon failed to start within #{DAEMON_START_TIMEOUT} seconds"
+      raise DaemonNotRunningError, "Daemon failed to start within #{DAEMON_START_TIMEOUT} seconds. Check #{File.join(@repo_path, '.beads', 'daemon.log')} for details."
     end
 end

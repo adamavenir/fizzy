@@ -28,13 +28,15 @@ class Beads::IssuesController < ApplicationController
     params_source = params[:issue] || params
 
     # Create issue in beads with actual user data
+    # Pass email as actor for audit trail, and store in creator label for lookup
+    creator_email = Current.user.identity.email_address
     result = client.create(
       title: params_source[:title],
       description: params_source[:description],
-      labels: ["fizzy:maybe"],
+      labels: ["fizzy:maybe", "creator:#{creator_email}"],
       priority: 2,
       issue_type: "task",
-      actor: Current.user.name
+      actor: creator_email
     )
 
     if params[:creation_type] == "add_another"
@@ -47,10 +49,6 @@ class Beads::IssuesController < ApplicationController
   end
 
   def show
-    respond_to do |format|
-      format.html
-      format.json { render json: @issue.as_json }
-    end
   end
 
   def edit
