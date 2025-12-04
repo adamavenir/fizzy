@@ -1,6 +1,6 @@
 class Beads::IssuesController < ApplicationController
   before_action :set_board
-  before_action :set_issue, only: [:show, :edit, :update]
+  before_action :set_issue, only: [:show, :edit, :update, :destroy]
 
   def new
     # Create a temporary drafted BeadsIssue for the form (not persisted to beads yet)
@@ -16,6 +16,8 @@ class Beads::IssuesController < ApplicationController
       updated_at: Time.current
     )
     @issue.board = @board
+    # Set creator to current user for draft cards
+    @issue.instance_variable_set(:@creator, Current.user)
     @card = @issue
   end
 
@@ -35,8 +37,11 @@ class Beads::IssuesController < ApplicationController
       actor: Current.user.name
     )
 
-    # Redirect to the new issue
-    redirect_to issue_path(board_id: @board, issue_id: result["id"])
+    if params[:creation_type] == "add_another"
+      redirect_to new_issue_path(board_id: @board), notice: "Card added"
+    else
+      redirect_to board_path(@board), notice: "Card added"
+    end
   rescue BeadsClient::Error => e
     redirect_to board_path(@board), alert: "Failed to create card: #{e.message}"
   end
@@ -78,6 +83,17 @@ class Beads::IssuesController < ApplicationController
     @issue = BeadsIssue.new(data)
     @issue.board = @board
     @card = @issue
+  end
+
+  def destroy
+    client = @board.beads_client
+
+    # Close the issue in beads
+    client.close(@issue.id)
+
+    redirect_to board_path(@board), notice: "Card deleted"
+  rescue BeadsClient::Error => e
+    redirect_to board_path(@board), alert: "Failed to delete card: #{e.message}"
   end
 
   private

@@ -16,7 +16,8 @@ module CardsHelper
   end
 
   def button_to_delete_card(card)
-    button_to card_path(card),
+    path = card.is_a?(BeadsIssue) ? issue_path(board_id: card.board.id, issue_id: card.id) : card_path(card)
+    button_to path,
         method: :delete, class: "btn txt-negative borderless txt-small", data: { turbo_frame: "_top", turbo_confirm: "Are you sure you want to permanently delete this card?" } do
       concat(icon_tag("trash"))
       concat(tag.span("Delete this card"))

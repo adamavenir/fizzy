@@ -35,5 +35,19 @@
     </article>
   </div>
 
-  <%= render "cards/container/footer/draft", card: card %>
+  <div class="card-perma__notch card-perma__notch--bottom">
+    <button type="submit" form="card_form" name="creation_type" value="add" class="btn"
+            title="Create card (#{ hotkey_label(["ctrl", "enter"]) })"
+            data-controller="clicker"
+            data-action="keydown.ctrl+enter@document->clicker#click keydown.meta+enter@document->clicker#click">
+      <span>Create card</span>
+    </button>
+
+    <button type="submit" form="card_form" name="creation_type" value="add_another" class="btn btn--reversed"
+            title="Create and add another (#{ hotkey_label(["ctrl", "shift", "enter"]) })"
+            data-controller="clicker"
+            data-action="keydown.ctrl+shift+enter@document->clicker#click keydown.meta+shift+enter@document->clicker#click">
+      <span>Create and add another</span>
+    </button>
+  </div>
 </section>
