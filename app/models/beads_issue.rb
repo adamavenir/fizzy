@@ -361,6 +361,10 @@ class BeadsIssue
     all_labels.map { |l| OpenStruct.new(title: l, id: nil) }
   end
 
+  def tagged_with?(tag)
+    tags.any? { |t| t.title == tag.title }
+  end
+
   def image
     if cover_image_path.present?
       OpenStruct.new(

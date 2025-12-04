@@ -1,20 +1,22 @@
 <div id="<%= dom_id(card, :tags) %>" class="card__tags">
-  <% unless card.is_a?(BeadsIssue) %>
-    <div class="position-relative" data-controller="dialog"
-          data-action="keydown.esc->dialog#close click@document->dialog#closeOnClickOutside mouseenter->dialog#loadLazyFrames" <%= "hidden" if card.closed? %>>
-      <button class="tag-picker__button btn card__hide-on-index" style="--btn-background: var(--card-bg-color);"
-          data-controller="tooltip hotkey" data-action="click->dialog#open:stop keydown.t@document->hotkey#click">
-        <%= icon_tag "tag" %>
-        <span class="for-screen-reader">Add a tag</span>
-      </button>
+  <div class="position-relative" data-controller="dialog"
+        data-action="keydown.esc->dialog#close click@document->dialog#closeOnClickOutside mouseenter->dialog#loadLazyFrames" <%= "hidden" if card.closed? %>>
+    <button class="tag-picker__button btn card__hide-on-index" style="--btn-background: var(--card-bg-color);"
+        data-controller="tooltip hotkey" data-action="click->dialog#open:stop keydown.t@document->hotkey#click">
+      <%= icon_tag "tag" %>
+      <span class="for-screen-reader">Add a tag</span>
+    </button>
 
-      <dialog class="popup panel flex-column align-start justify-start fill-white shadow txt-small"
-          data-dialog-target="dialog"
-          data-action="turbo:before-morph-attribute->dialog#preventCloseOnMorphing turbo:submit-end->dialog#close">
+    <dialog class="popup panel flex-column align-start justify-start fill-white shadow txt-small"
+        data-dialog-target="dialog"
+        data-action="turbo:before-morph-attribute->dialog#preventCloseOnMorphing turbo:submit-end->dialog#close">
+      <% if card.is_a?(BeadsIssue) %>
+        <%= turbo_frame_tag card, :tagging, src: new_issue_tagging_path(board_id: card.board.id, issue_issue_id: card.id), loading: :lazy, refresh: :morph %>
+      <% else %>
         <%= turbo_frame_tag card, :tagging, src: new_card_tagging_path(card), loading: :lazy, refresh: :morph %>
-      </dialog>
-    </div>
-  <% end %>
+      <% end %>
+    </dialog>
+  </div>
 
   <% if card.tags.any? %>
     <div class="min-width overflow-ellipsis">

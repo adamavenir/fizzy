@@ -251,6 +251,7 @@ Rails.application.routes.draw do
           resource :watch, only: [:show, :create]
           resources :comments, only: :create
           resources :assignments, only: [:new, :create]
+          resources :taggings, only: [:new, :create]
 
           # Built-in column drops
           scope module: "drops" do
