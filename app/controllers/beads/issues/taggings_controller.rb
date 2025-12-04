@@ -4,6 +4,10 @@ class Beads::Issues::TaggingsController < ApplicationController
 
   def new
     @card = @issue
+
+    # Ensure built-in beads tags exist in Fizzy
+    ensure_beads_tags_exist
+
     # BeadsIssue.tags returns an array of Tag objects, so we need to sort manually
     @tagged_with = @card.tags.sort_by(&:title)
     # Get all account tags not already on the card
@@ -54,5 +58,17 @@ class Beads::Issues::TaggingsController < ApplicationController
 
     def sanitized_tag_title_param
       params.required(:tag_title).strip.gsub(/\A#/, "")
+    end
+
+    def ensure_beads_tags_exist
+      # Priority tags: p0, p1, p2, p3, p4
+      %w[p0 p1 p2 p3 p4].each do |tag_title|
+        Current.account.tags.find_or_create_by!(title: tag_title)
+      end
+
+      # Type tags: bug, feature, epic, chore, task
+      %w[bug feature epic chore task].each do |tag_title|
+        Current.account.tags.find_or_create_by!(title: tag_title)
+      end
     end
 end
