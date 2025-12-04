@@ -12,21 +12,19 @@
 
       <div class="card__body justify-space-between">
         <div class="card__content">
-          <%= form_with url: issues_path(board_id: card.board), method: :post, scope: :issue, id: "card_form",
-                data: { controller: "autoresize draft-save", draft_save_key_value: "beads-draft-#{card.board.id}", action: "turbo:submit-end->draft-save#submit" } do |form| %>
+          <%= form_with url: issues_path(board_id: card.board), method: :post, scope: :issue, id: "card_form", data: { controller: "autoresize" } do |form| %>
             <h1 class="card__title">
               <%= form.label :title, class: "flex flex-column align-center autoresize__wrapper", data: { autoresize_target: "wrapper", autoresize_clone_value: "" } do %>
                 <%= form.text_area :title, placeholder: "Name it…",
                       class: "card-field__title autoresize__textarea input input--textarea full-width borderless txt-align-start hide-focus-ring hide-scrollbar",
                       autofocus: true, rows: 1, dir: "auto", maxlength: 255,
-                      data: { draft_save_target: "title", autoresize_target: "textarea", action: "input->autoresize#resize input->draft-save#save" } %>
+                      data: { autoresize_target: "textarea", action: "input->autoresize#resize" } %>
               <% end %>
             </h1>
 
             <%= form.text_area :description, class: "card__description input input--textarea full-width borderless hide-scrollbar hide-focus-ring",
                   placeholder: "Add some notes, context, pictures, or video about this… (Markdown supported)",
-                  rows: 10, style: "min-height: 10em;",
-                  data: { draft_save_target: "description", action: "input->draft-save#save" } %>
+                  rows: 10, style: "min-height: 10em;" %>
           <% end %>
         </div>
       </div>
