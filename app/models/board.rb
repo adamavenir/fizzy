@@ -15,6 +15,7 @@ class Board < ApplicationRecord
 
   validate :repo_has_beads_directory, if: -> { repo_path.present? }
   before_validation :normalize_repo_path, if: -> { repo_path.present? }
+  after_create :initialize_beads_timestamp, if: -> { beads_enabled? }
 
   def beads_client
     return nil unless repo_path.present?
@@ -74,5 +75,11 @@ class Board < ApplicationRecord
       unless File.exist?(File.join(repo_path, ".beads"))
         errors.add(:repo_path, "does not contain a .beads directory")
       end
+    end
+
+    def initialize_beads_timestamp
+      # Start from current time to skip historical mutations
+      current_ms = (Time.now.to_f * 1000).to_i
+      update_column(:last_mutation_timestamp, current_ms)
     end
 end
