@@ -1,3 +1,5 @@
+require 'ostruct'
+
 class BoardsController < ApplicationController
   include FilterScoped
 
@@ -5,6 +7,8 @@ class BoardsController < ApplicationController
   before_action :ensure_permission_to_admin_board, only: %i[ update ]
 
   def show
+    start_beads_polling if @board.beads_enabled?
+
     if @filter.used?(ignore_boards: true)
       show_filtered_cards
     else
@@ -100,5 +104,14 @@ class BoardsController < ApplicationController
 
     def grantee_ids
       params.fetch :user_ids, []
+    end
+
+    def start_beads_polling
+      return if SolidQueue::Job.where(
+        class_name: "BeadsMutationPollerJob",
+        queue_name: "default"
+      ).where("arguments LIKE ?", "%#{@board.id}%").exists?
+
+      BeadsMutationPollerJob.perform_later(@board.id)
     end
 end

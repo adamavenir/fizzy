@@ -19,10 +19,6 @@ class Beads::Issues::ColumnDropsController < ApplicationController
     else
       client.update(@issue.id, status: @target_column.beads_value)
     end
-
-    # Reload and refresh the card container
-    reload_issue
-    render turbo_stream: turbo_stream.replace([@issue, :card_container], partial: "cards/container", method: :morph, locals: { card: @issue })
   rescue BeadsClient::Error => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
@@ -40,11 +36,5 @@ class Beads::Issues::ColumnDropsController < ApplicationController
 
     def set_target_column
       @target_column = @board.columns.find(params[:column_id])
-    end
-
-    def reload_issue
-      issue_data = @board.beads_client.show(@issue.id)
-      @issue = BeadsIssue.new(issue_data)
-      @issue.board = @board
     end
 end

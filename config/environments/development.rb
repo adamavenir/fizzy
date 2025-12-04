@@ -88,4 +88,7 @@ Rails.application.configure do
   # Set host to be used by links generated in mailer and notification view templates.
   config.action_controller.default_url_options = { host: config.hosts.first, port: 3006 }
   config.action_mailer.default_url_options     = { host: config.hosts.first, port: 3006 }
+
+  # Configure Solid Queue to use queue database
+  config.solid_queue.connects_to = { database: { writing: :queue } }
 end

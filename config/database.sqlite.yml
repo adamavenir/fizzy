@@ -12,6 +12,11 @@ development:
     <<: *default
     database: storage/development_cable.sqlite3
     migrations_paths: db/cable_migrate
+  queue:
+    <<: *default
+    database: storage/development_queue.sqlite3
+    migrations_paths: db/queue_migrate
+    schema_dump: queue_schema.rb
 
 test:
   primary:
@@ -22,6 +27,11 @@ test:
     <<: *default
     database: storage/test_cable.sqlite3
     migrations_paths: db/cable_migrate
+  queue:
+    <<: *default
+    database: storage/test_queue.sqlite3
+    migrations_paths: db/queue_migrate
+    schema_dump: queue_schema.rb
 
 production:
   primary:
@@ -32,3 +42,8 @@ production:
     <<: *default
     database: storage/production_cable.sqlite3
     migrations_paths: db/cable_migrate
+  queue:
+    <<: *default
+    database: storage/production_queue.sqlite3
+    migrations_paths: db/queue_migrate
+    schema_dump: queue_schema.rb
