@@ -41,14 +41,19 @@ class BeadsBridge
     end
 
     def process_mutation(mutation)
+      issue_id = mutation["IssueID"]
+
       case mutation["Type"]
       when "create"
-        broadcast_card_created(mutation["IssueID"])
+        broadcast_card_created(issue_id)
+        create_event_for_creation(issue_id)
       when "update"
         # For updates, remove and re-add to handle potential status changes
-        broadcast_card_moved(mutation["IssueID"])
+        broadcast_card_moved(issue_id)
+        create_event_for_update(issue_id, mutation)
       when "close", "delete"
-        broadcast_card_removed(mutation["IssueID"])
+        broadcast_card_removed(issue_id)
+        create_event_for_closure(issue_id) if mutation["Type"] == "close"
       end
     end
 
@@ -125,5 +130,62 @@ class BeadsBridge
 
       board.update_column(:last_mutation_timestamp, timestamp_ms)
       Rails.logger.info("BeadsBridge: Updated timestamp to #{timestamp_ms} (#{timestamp})")
+    end
+
+    # Event creation methods
+    def create_event_for_creation(issue_id)
+      issue = fetch_issue(issue_id)
+      return unless issue
+
+      Event.create!(
+        board: board,
+        creator: issue.creator,
+        eventable_type: "BeadsIssue",
+        eventable_id: uuid_for_issue(issue_id),
+        action: "beads_issue_published",
+        beads_issue_id: issue_id
+      )
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error("BeadsBridge: Failed to create event for #{issue_id}: #{e.message}")
+    end
+
+    def create_event_for_update(issue_id, mutation)
+      issue = fetch_issue(issue_id)
+      return unless issue
+
+      # Check if this is a status change by comparing current status
+      # We need to fetch the previous issue state to detect status changes
+      # For now, create a generic update event
+      Event.create!(
+        board: board,
+        creator: issue.creator,
+        eventable_type: "BeadsIssue",
+        eventable_id: uuid_for_issue(issue_id),
+        action: "beads_issue_updated",
+        beads_issue_id: issue_id
+      )
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error("BeadsBridge: Failed to create update event for #{issue_id}: #{e.message}")
+    end
+
+    def create_event_for_closure(issue_id)
+      issue = fetch_issue(issue_id)
+      return unless issue
+
+      Event.create!(
+        board: board,
+        creator: issue.creator,
+        eventable_type: "BeadsIssue",
+        eventable_id: uuid_for_issue(issue_id),
+        action: "beads_issue_closed",
+        beads_issue_id: issue_id
+      )
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error("BeadsBridge: Failed to create closure event for #{issue_id}: #{e.message}")
+    end
+
+    def uuid_for_issue(issue_id)
+      # Generate a deterministic UUID from the issue ID using MD5
+      Digest::MD5.hexdigest(issue_id)
     end
 end

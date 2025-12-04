@@ -105,6 +105,11 @@ class BeadsIssue
     id
   end
 
+  # For URL generation in views
+  def to_partial_path
+    "beads_issue"
+  end
+
   def persisted?
     id.present?
   end
@@ -115,6 +120,11 @@ class BeadsIssue
 
   # For polymorphic_path to work with form_with
   def to_model
+    self
+  end
+
+  # Rails introspection methods
+  def self.base_class
     self
   end
 

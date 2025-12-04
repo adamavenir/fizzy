@@ -11,6 +11,8 @@ module EventsHelper
       "rename"
     when "card_board_changed", "card_triaged", "card_postponed", "card_auto_postponed"
       "move"
+    when "beads_issue_updated"
+      "rename"
     else
       "person"
     end

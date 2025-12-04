@@ -2,7 +2,7 @@ module Event::Particulars
   extend ActiveSupport::Concern
 
   included do
-    store_accessor :particulars, :assignee_ids
+    store_accessor :particulars, :assignee_ids, :beads_issue_id
   end
 
   def assignees

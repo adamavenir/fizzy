@@ -75,6 +75,12 @@ class Event::Description
         triaged_sentence(creator, card_title)
       when "card_sent_back_to_triage"
         %(#{creator} moved #{card_title} back to "Maybe?")
+      when "beads_issue_published"
+        "#{creator} added #{card_title}"
+      when "beads_issue_closed"
+        %(#{creator} moved #{card_title} to "Done")
+      when "beads_issue_updated"
+        "#{creator} updated #{card_title}"
       end
     end
 

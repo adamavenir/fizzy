@@ -30,15 +30,15 @@ class User::DayTimeline
   end
 
   def added_column
-    @added_column ||= build_column("Added", 1, events.where(action: %w[card_published card_reopened]))
+    @added_column ||= build_column("Added", 1, events.where(action: %w[card_published card_reopened beads_issue_published]))
   end
 
   def updated_column
-    @updated_column ||= build_column("Updated", 2, events.where.not(action: %w[card_published card_closed card_reopened]))
+    @updated_column ||= build_column("Updated", 2, events.where.not(action: %w[card_published card_closed card_reopened beads_issue_published beads_issue_closed]))
   end
 
   def closed_column
-    @closed_column ||= build_column("Done", 3, events.where(action: "card_closed"))
+    @closed_column ||= build_column("Done", 3, events.where(action: %w[card_closed beads_issue_closed]))
   end
 
   def cache_key
@@ -59,6 +59,9 @@ class User::DayTimeline
       card_triaged
       card_sent_back_to_triage
       comment_created
+      beads_issue_published
+      beads_issue_closed
+      beads_issue_updated
     ]
 
     def filtered_events
