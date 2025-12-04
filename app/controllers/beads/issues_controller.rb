@@ -10,29 +10,35 @@ class Beads::IssuesController < ApplicationController
   end
 
   def edit
+    # Render inline edit form (turbo_frame)
+    @card = @issue
+    render "cards/edit"
   end
 
   def update
     client = @board.beads_client
+
+    # Handle form params (could be :issue or direct params)
+    params_source = params[:issue] || params
     updates = {}
 
-    updates[:title] = params[:title] if params[:title].present?
+    updates[:title] = params_source[:title] if params_source[:title].present?
 
     # Preserve cover image line when updating description
-    if params.key?(:description)
+    if params_source.key?(:description)
       cover_line = @issue.cover_image_path ? "![cover](#{@issue.cover_image_path})\n" : ""
-      updates[:description] = cover_line + params[:description].to_s
+      updates[:description] = cover_line + params_source[:description].to_s
     end
-
-    updates[:priority] = params[:priority].to_i if params[:priority].present?
-    updates[:issue_type] = params[:issue_type] if params[:issue_type].present?
-    updates[:assignee] = params[:assignee] if params.key?(:assignee)
 
     if updates.any?
       client.update(@issue.id, **updates)
     end
 
-    redirect_to issue_path(board_id: @board.id, issue_id: @issue.id), notice: "Issue updated"
+    # Reload for turbo_stream response
+    data = client.show(@issue.id)
+    @issue = BeadsIssue.new(data)
+    @issue.board = @board
+    @card = @issue
   end
 
   private

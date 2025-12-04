@@ -1,0 +1,8 @@
+<%# Exit edit mode and show updated content %>
+<%= turbo_stream.replace dom_id(@card, :edit) do %>
+  <%= turbo_stream.replace dom_id(@card, :card_closure_toggle) do %>
+    <%= render "cards/container/closure", card: @card %>
+  <% end %>
+
+  <%= render "cards/container/content_display", card: @card %>
+<% end %>

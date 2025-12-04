@@ -1,6 +1,6 @@
 <h1 class="card__title flex align-start gap-half">
   <% if card.is_a?(BeadsIssue) %>
-    <%= card.title %>
+    <%= link_to card.title, edit_issue_path(board_id: card.board.id, issue_id: card.id), class: "card__title-link", data: { turbo_frame: dom_id(card, :edit) } %>
   <% else %>
     <%= link_to card.title, edit_card_path(card), class: "card__title-link" %>
   <% end %>

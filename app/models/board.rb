@@ -14,6 +14,7 @@ class Board < ApplicationRecord
   scope :ordered_by_recently_accessed, -> { merge(Access.ordered_by_recently_accessed) }
 
   validate :repo_has_beads_directory, if: -> { repo_path.present? }
+  before_validation :normalize_repo_path, if: -> { repo_path.present? }
 
   def beads_client
     return nil unless repo_path.present?
@@ -42,6 +43,26 @@ class Board < ApplicationRecord
   end
 
   private
+    def normalize_repo_path
+      path = repo_path.strip
+
+      # If user entered /path/to/.beads, trim the .beads part
+      if path.end_with?("/.beads")
+        self.repo_path = path.chomp("/.beads")
+        return
+      end
+
+      # If path contains .beads but doesn't end with it (e.g., /path/.beads/something)
+      if path.include?("/.beads/") || path.include?("/.beads")
+        # Extract everything before .beads
+        self.repo_path = path.split("/.beads").first
+        return
+      end
+
+      # If path is a directory containing .beads, use it as-is
+      # If path is a directory that itself contains a dir with .beads, that's fine too
+    end
+
     def repo_has_beads_directory
       return if repo_path.blank?
 

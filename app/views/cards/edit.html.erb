@@ -6,22 +6,42 @@
     <%= render "cards/container/save_button", card: @card %>
   <% end %>
 
-  <%= form_with model: @card, id: dom_id(@card, :edit_form),
-        data: { controller: "autoresize form local-save", local_save_key_value: "card-#{@card.id}", action: "turbo:submit-end->local-save#submit" } do |form| %>
-    <h1 class="card__title flex align-start gap-half">
-      <%= form.label :title, class: "flex flex-column align-center autoresize__wrapper", data: { autoresize_target: "wrapper", autoresize_clone_value: "" } do %>
-        <%= form.text_area :title, class: "card-field__title autoresize__textarea input input--textarea full-width borderless txt-align-start hide-focus-ring hide-scrollbar",
-              required: true, autofocus: true, placeholder: "Name it…", rows: 1, dir: "auto", maxlength: 255,
-              data: { autoresize_target: "textarea", action: "input->autoresize#resize keydown.enter->form#submit:prevent keydown.ctrl+enter->form#submit:prevent keydown.meta+enter->form#submit:prevent keydown.esc->form#cancel focus->form#select" } %>
-      <% end %>
-    </h1>
+  <% if @card.is_a?(BeadsIssue) %>
+    <%= form_with url: issue_path(board_id: @card.board.id, issue_id: @card.id), method: :patch, scope: :issue, id: dom_id(@card, :edit_form),
+          data: { controller: "autoresize form local-save", local_save_key_value: "card-#{@card.id}", action: "turbo:submit-end->local-save#submit" } do |form| %>
+      <h1 class="card__title flex align-start gap-half">
+        <%= form.label :title, class: "flex flex-column align-center autoresize__wrapper", data: { autoresize_target: "wrapper", autoresize_clone_value: "" } do %>
+          <%= form.text_area :title, value: @card.title, class: "card-field__title autoresize__textarea input input--textarea full-width borderless txt-align-start hide-focus-ring hide-scrollbar",
+                required: true, autofocus: true, placeholder: "Name it…", rows: 1, dir: "auto", maxlength: 255,
+                data: { autoresize_target: "textarea", action: "input->autoresize#resize keydown.enter->form#submit:prevent keydown.ctrl+enter->form#submit:prevent keydown.meta+enter->form#submit:prevent keydown.esc->form#cancel focus->form#select" } %>
+        <% end %>
+      </h1>
 
-    <%= form.rich_textarea :description, class: "card__description rich-text-content",
-          placeholder: "Add some notes, context, pictures, or video about this…",
-          data: { local_save_target: "input", action: "lexxy:change->local-save#save turbo:morph-element->local-save#restoreContent keydown.ctrl+enter->form#submit:prevent keydown.meta+enter->form#submit:prevent keydown.esc->form#cancel:stop" } do %>
-      <%= general_prompts(@card.board) %>
+      <%= form.text_area :description, value: @card.description_without_cover, class: "card__description rich-text-content input input--textarea full-width borderless hide-scrollbar",
+            placeholder: "Add some notes, context, pictures, or video about this… (Markdown supported)",
+            rows: 10, style: "min-height: 10em;",
+            data: { local_save_target: "input", action: "input->local-save#save keydown.ctrl+enter->form#submit:prevent keydown.meta+enter->form#submit:prevent keydown.esc->form#cancel:stop" } %>
+
+      <%= link_to "Close editor and discard changes", issue_path(board_id: @card.board.id, issue_id: @card.id), data: { form_target: "cancel" }, hidden: true %>
     <% end %>
+  <% else %>
+    <%= form_with model: @card, id: dom_id(@card, :edit_form),
+          data: { controller: "autoresize form local-save", local_save_key_value: "card-#{@card.id}", action: "turbo:submit-end->local-save#submit" } do |form| %>
+      <h1 class="card__title flex align-start gap-half">
+        <%= form.label :title, class: "flex flex-column align-center autoresize__wrapper", data: { autoresize_target: "wrapper", autoresize_clone_value: "" } do %>
+          <%= form.text_area :title, class: "card-field__title autoresize__textarea input input--textarea full-width borderless txt-align-start hide-focus-ring hide-scrollbar",
+                required: true, autofocus: true, placeholder: "Name it…", rows: 1, dir: "auto", maxlength: 255,
+                data: { autoresize_target: "textarea", action: "input->autoresize#resize keydown.enter->form#submit:prevent keydown.ctrl+enter->form#submit:prevent keydown.meta+enter->form#submit:prevent keydown.esc->form#cancel focus->form#select" } %>
+        <% end %>
+      </h1>
 
-    <%= link_to "Close editor and discard changes", @card, data: { form_target: "cancel" }, hidden: true %>
+      <%= form.rich_textarea :description, class: "card__description rich-text-content",
+            placeholder: "Add some notes, context, pictures, or video about this…",
+            data: { local_save_target: "input", action: "lexxy:change->local-save#save turbo:morph-element->local-save#restoreContent keydown.ctrl+enter->form#submit:prevent keydown.meta+enter->form#submit:prevent keydown.esc->form#cancel:stop" } do %>
+        <%= general_prompts(@card.board) %>
+      <% end %>
+
+      <%= link_to "Close editor and discard changes", @card, data: { form_target: "cancel" }, hidden: true %>
+    <% end %>
   <% end %>
 <% end %>

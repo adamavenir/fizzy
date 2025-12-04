@@ -1,15 +1,31 @@
 <div class="flex gap-half">
-  <%= link_to edit_card_path(card), class: "btn btn--circle-mobile borderless", data: { controller: "hotkey", action: "keydown.e@document->hotkey#click", turbo_frame: dom_id(card, :edit) } do %>
-    <%= icon_tag "pencil", class: "icon--mobile-only" %>
-    <span>Edit</span>
-    <kbd class="txt-x-small hide-on-touch">e</kbd>
-  <% end %>
+  <% if card.is_a?(BeadsIssue) %>
+    <%= link_to edit_issue_path(board_id: card.board.id, issue_id: card.id), class: "btn btn--circle-mobile borderless", data: { controller: "hotkey", action: "keydown.e@document->hotkey#click" } do %>
+      <%= icon_tag "pencil", class: "icon--mobile-only" %>
+      <span>Edit</span>
+      <kbd class="txt-x-small hide-on-touch">e</kbd>
+    <% end %>
 
-  <%= button_to card_closure_path(card), class: "btn btn--circle-mobile borderless",
-        data: { controller: "hotkey", form_target: "submit", action: "keydown.d@document->hotkey#click" },
-        form: { data: { controller: "form" } } do %>
-    <%= icon_tag "check", class: "icon--mobile-only" %>
-    <span class="overflow-ellipsis">Mark as Done</span>
-    <kbd class="txt-x-small hide-on-touch">d</kbd>
+    <%= button_to issue_closure_path(board_id: card.board.id, issue_issue_id: card.id), class: "btn btn--circle-mobile borderless",
+          data: { controller: "hotkey", form_target: "submit", action: "keydown.d@document->hotkey#click" },
+          form: { data: { controller: "form" } } do %>
+      <%= icon_tag "check", class: "icon--mobile-only" %>
+      <span class="overflow-ellipsis">Mark as Done</span>
+      <kbd class="txt-x-small hide-on-touch">d</kbd>
+    <% end %>
+  <% else %>
+    <%= link_to edit_card_path(card), class: "btn btn--circle-mobile borderless", data: { controller: "hotkey", action: "keydown.e@document->hotkey#click", turbo_frame: dom_id(card, :edit) } do %>
+      <%= icon_tag "pencil", class: "icon--mobile-only" %>
+      <span>Edit</span>
+      <kbd class="txt-x-small hide-on-touch">e</kbd>
+    <% end %>
+
+    <%= button_to card_closure_path(card), class: "btn btn--circle-mobile borderless",
+          data: { controller: "hotkey", form_target: "submit", action: "keydown.d@document->hotkey#click" },
+          form: { data: { controller: "form" } } do %>
+      <%= icon_tag "check", class: "icon--mobile-only" %>
+      <span class="overflow-ellipsis">Mark as Done</span>
+      <kbd class="txt-x-small hide-on-touch">d</kbd>
+    <% end %>
   <% end %>
 </div>
