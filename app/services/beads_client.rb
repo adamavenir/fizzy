@@ -39,14 +39,15 @@ class BeadsClient
     rpc("show", { id: })
   end
 
-  def create(title:, description: nil, labels: [], priority: 2, issue_type: "task", assignee: nil)
+  def create(title:, description: nil, labels: [], priority: 2, issue_type: "task", assignee: nil, actor: nil)
     rpc("create", {
       title:,
       description:,
       labels:,
       priority:,
       issue_type:,
-      assignee:
+      assignee:,
+      actor:
     }.compact)
   end
 

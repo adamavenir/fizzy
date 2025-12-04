@@ -200,7 +200,7 @@ class BeadsIssue
   end
 
   def drafted?
-    false
+    status == "draft"
   end
 
   def triaged?

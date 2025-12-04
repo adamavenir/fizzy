@@ -17,11 +17,7 @@
       <span class="card-perma__closure-message">Closed <%= local_datetime_tag(card.closed_at, style: :shortdate) if card.closed_at %>.</span>
     </div>
   <% else %>
-    <div class="flex gap margin-block-start-double">
-      <%= button_to issue_closure_path(board_id: card.board.id, issue_issue_id: card.id), method: :post, class: "btn btn--primary", data: { controller: "tooltip hotkey", action: "keydown.d@document->hotkey#click" } do %>
-        <span>Mark as Done</span>
-      <% end %>
-    </div>
+    <%= render "cards/container/closure_buttons", card: card %>
 
     <% if card.status.present? %>
       <div class="card-perma__closure-message margin-block-start">

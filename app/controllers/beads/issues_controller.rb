@@ -2,21 +2,41 @@ class Beads::IssuesController < ApplicationController
   before_action :set_board
   before_action :set_issue, only: [:show, :edit, :update]
 
+  def new
+    # Create a temporary drafted BeadsIssue for the form (not persisted to beads yet)
+    @issue = BeadsIssue.new(
+      id: "draft-#{SecureRandom.hex(4)}",
+      title: "",
+      description: "",
+      status: "draft",
+      labels: ["fizzy:maybe"],
+      priority: 2,
+      issue_type: "task",
+      created_at: Time.current,
+      updated_at: Time.current
+    )
+    @issue.board = @board
+    @card = @issue
+  end
+
   def create
     client = @board.beads_client
 
-    # Create issue in beads with fizzy:maybe label for triage
+    # Extract params
+    params_source = params[:issue] || params
+
+    # Create issue in beads with actual user data
     result = client.create(
-      title: "New card",
-      status: "open",
-      assignee: Current.user.identity.email_address
+      title: params_source[:title],
+      description: params_source[:description],
+      labels: ["fizzy:maybe"],
+      priority: 2,
+      issue_type: "task",
+      actor: Current.user.name
     )
 
-    # Add fizzy:maybe label to put in Maybe? column
-    client.add_label(result["id"], "fizzy:maybe")
-
     # Redirect to the new issue
-    redirect_to beads_board_issue_path(@board, result["id"])
+    redirect_to issue_path(board_id: @board, issue_id: result["id"])
   rescue BeadsClient::Error => e
     redirect_to board_path(@board), alert: "Failed to create card: #{e.message}"
   end
