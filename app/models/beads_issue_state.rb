@@ -1,5 +1,14 @@
 # frozen_string_literal: true
 
+# Caches the last known state of a beads issue as JSON snapshot.
+# Enables change detection by comparing cached state to current state.
+#
+# Lifecycle:
+# - Created when issue first appears via mutation
+# - Updated after each mutation is processed
+# - Deleted when issue is removed
+#
+# Snapshot format: Full issue data as JSON (title, status, comments, etc.)
 class BeadsIssueState < ApplicationRecord
   belongs_to :board
 

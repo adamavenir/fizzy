@@ -1,6 +1,16 @@
 # frozen_string_literal: true
 
 module Beads
+  # Compares old and new issue states field-by-field.
+  # Returns array of Change objects representing semantic differences.
+  # Each change knows its event action, particulars, and notification rules.
+  #
+  # Example:
+  #   old = { status: "open", assignee: nil }
+  #   new = { status: "closed", assignee: "alice@example.com" }
+  #   detector = ChangeDetector.new(old_state: old, new_state: new, issue: issue)
+  #   changes = detector.detect_changes
+  #   # => [StatusChange, AssignmentChange]
   class ChangeDetector
     attr_reader :old_state, :new_state, :issue
 

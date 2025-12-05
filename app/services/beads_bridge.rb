@@ -43,17 +43,28 @@ class BeadsBridge
     def process_mutation(mutation)
       issue_id = mutation["IssueID"]
 
-      case mutation["Type"]
-      when "create"
-        issue = fetch_issue(issue_id)
-        return unless issue
-        handle_create(issue)
-      when "update"
-        issue = fetch_issue(issue_id)
-        return unless issue
-        handle_update(issue)
-      when "close", "delete"
-        handle_delete(issue_id)
+      begin
+        case mutation["Type"]
+        when "create"
+          issue = fetch_issue(issue_id)
+          return unless issue
+          handle_create(issue)
+        when "update"
+          issue = fetch_issue(issue_id)
+          return unless issue
+          handle_update(issue)
+        when "close", "delete"
+          handle_delete(issue_id)
+        end
+      rescue BeadsClient::Error => e
+        Rails.logger.warn("BeadsBridge: Cannot fetch issue #{issue_id}: #{e.message}")
+        # For delete mutations, issue being gone is expected
+        handle_delete(issue_id) if mutation["Type"] == "delete" || mutation["Type"] == "close"
+        # For create/update mutations, skip this mutation
+      rescue StandardError => e
+        Rails.logger.error("BeadsBridge: Failed processing mutation for #{issue_id}: #{e.class.name} - #{e.message}")
+        Rails.logger.error(e.backtrace.first(5).join("\n")) if Rails.env.development?
+        # Don't raise - continue processing other mutations
       end
     end
 
@@ -69,6 +80,9 @@ class BeadsBridge
         board,
         target: ActionView::RecordIdentifier.dom_id(column, :cards)
       )
+    rescue StandardError => e
+      Rails.logger.error("BeadsBridge: Failed to broadcast card created for #{issue_id}: #{e.message}")
+      # Continue - broadcast failure is not critical
     end
 
     def broadcast_card_updated(issue_id)
@@ -82,6 +96,9 @@ class BeadsBridge
         partial: "cards/display/beads_preview",
         locals: { card: issue, draggable: true }
       )
+    rescue StandardError => e
+      Rails.logger.error("BeadsBridge: Failed to broadcast card updated for #{issue_id}: #{e.message}")
+      # Continue - broadcast failure is not critical
     end
 
     def broadcast_card_removed(issue_id)
@@ -89,6 +106,9 @@ class BeadsBridge
         board,
         target: "#{issue_id}_article"
       )
+    rescue StandardError => e
+      Rails.logger.error("BeadsBridge: Failed to broadcast card removed for #{issue_id}: #{e.message}")
+      # Continue - broadcast failure is not critical
     end
 
     def broadcast_card_moved(issue_id)
@@ -137,17 +157,22 @@ class BeadsBridge
       issue_data = serialize_issue(issue)
 
       # Store initial state in cache (use find_or_create for idempotency)
-      state = BeadsIssueState.find_or_initialize_by(
-        board_id: board.id,
-        issue_id: issue.id
-      )
+      begin
+        state = BeadsIssueState.find_or_initialize_by(
+          board_id: board.id,
+          issue_id: issue.id
+        )
 
-      state.snapshot = issue_data.to_json
-      state.synced_at = Time.current
-      state.save!
+        state.snapshot = issue_data.to_json
+        state.synced_at = Time.current
+        state.save!
 
-      # Log the creation
-      Rails.logger.info("BeadsBridge: Created state cache for #{issue.id}")
+        # Log the creation
+        Rails.logger.info("BeadsBridge: Created state cache for #{issue.id}")
+      rescue ActiveRecord::RecordInvalid => e
+        Rails.logger.error("BeadsBridge: Failed to create cache for #{issue.id}: #{e.message}")
+        # Continue - cache will be missing but not fatal for this mutation
+      end
 
       # Create published event
       create_event_for_creation(issue.id)
@@ -157,6 +182,13 @@ class BeadsBridge
     end
 
     def handle_update(issue)
+      # Change detection flow:
+      # 1. Load previous state from cache (BeadsIssueState)
+      # 2. Compare to current issue data (ChangeDetector)
+      # 3. Get semantic changes (StatusChange, CommentAddition, etc.)
+      # 4. Log changes (or create events in future)
+      # 5. Update cache with new state for next comparison
+
       # Load previous state from cache
       state = BeadsIssueState.find_by(board_id: board.id, issue_id: issue.id)
 
@@ -167,7 +199,22 @@ class BeadsBridge
       end
 
       # Compare states
-      previous_snapshot = state.parsed_snapshot
+      begin
+        previous_snapshot = state.parsed_snapshot
+
+        # If snapshot is empty (due to parsing error), rebuild
+        if previous_snapshot.empty?
+          Rails.logger.error("BeadsBridge: Empty/corrupted cache for #{issue.id}, rebuilding")
+          state.destroy
+          return handle_create(issue)
+        end
+      rescue JSON::ParserError => e
+        Rails.logger.error("BeadsBridge: Corrupted cache for #{issue.id}, rebuilding: #{e.message}")
+        # Delete corrupted cache and rebuild
+        state.destroy
+        return handle_create(issue)
+      end
+
       current_snapshot = serialize_issue(issue)
 
       detector = Beads::ChangeDetector.new(
@@ -184,7 +231,12 @@ class BeadsBridge
       end
 
       # Update cached state
-      state.update_snapshot!(current_snapshot)
+      begin
+        state.update_snapshot!(current_snapshot)
+      rescue ActiveRecord::RecordInvalid => e
+        Rails.logger.error("BeadsBridge: Failed to update cache for #{issue.id}: #{e.message}")
+        # Continue - cache will be stale but not fatal
+      end
 
       # Broadcast UI updates (handles column moves)
       broadcast_card_moved(issue.id) if changes.any?
