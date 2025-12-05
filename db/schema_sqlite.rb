@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2025_12_04_082422) do
+ActiveRecord::Schema[8.2].define(version: 2025_12_05_074917) do
   create_table "accesses", id: :uuid, force: :cascade do |t|
     t.datetime "accessed_at"
     t.uuid "account_id", null: false
@@ -130,6 +130,17 @@ ActiveRecord::Schema[8.2].define(version: 2025_12_04_082422) do
     t.index ["account_id"], name: "index_assignments_on_account_id"
     t.index ["assignee_id", "card_id"], name: "index_assignments_on_assignee_id_and_card_id", unique: true
     t.index ["card_id"], name: "index_assignments_on_card_id"
+  end
+
+  create_table "beads_issue_states", id: :uuid, force: :cascade do |t|
+    t.uuid "board_id", null: false
+    t.datetime "created_at", null: false
+    t.string "issue_id", limit: 255, null: false
+    t.text "snapshot", limit: 65535, null: false
+    t.datetime "synced_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["board_id", "issue_id"], name: "index_beads_issue_states_on_board_id_and_issue_id", unique: true
+    t.index ["board_id"], name: "index_beads_issue_states_on_board_id"
   end
 
   create_table "board_publications", id: :uuid, force: :cascade do |t|
@@ -559,6 +570,8 @@ ActiveRecord::Schema[8.2].define(version: 2025_12_04_082422) do
     t.index ["account_id"], name: "index_webhooks_on_account_id"
     t.index ["board_id", "subscribed_actions"], name: "index_webhooks_on_board_id_and_subscribed_actions"
   end
+
+  add_foreign_key "beads_issue_states", "boards"
   execute "CREATE VIRTUAL TABLE search_records_fts USING fts5(\n        title,\n        content,\n        tokenize='porter'\n      )"
 
 end
