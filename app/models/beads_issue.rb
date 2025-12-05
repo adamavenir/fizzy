@@ -390,6 +390,8 @@ class BeadsIssue
   end
 
   def tags
+    return [] unless board.respond_to?(:account) && board.account
+
     all_labels = []
 
     # Add priority tag
@@ -398,10 +400,22 @@ class BeadsIssue
     # Add type tag (skip default 'task')
     all_labels << issue_type if issue_type.present? && issue_type != "task"
 
-    # Add regular labels
+    # Add regular labels (excluding fizzy: prefixed ones)
     all_labels += non_fizzy_labels
 
-    all_labels.map { |l| OpenStruct.new(title: l, id: nil) }
+    # Return real Tag records so they work with Fizzy's filter system
+    all_labels.map { |title| find_or_create_tag(title) }.compact
+  end
+
+  def find_or_create_tag(title)
+    return nil unless board.respond_to?(:account) && board.account
+
+    # Cache tags per request to avoid N+1
+    @tag_cache ||= {}
+    @tag_cache[title] ||= board.account.tags.find_or_create_by!(title: title)
+  rescue ActiveRecord::RecordNotUnique
+    # Handle race condition
+    board.account.tags.find_by(title: title)
   end
 
   def tagged_with?(tag)

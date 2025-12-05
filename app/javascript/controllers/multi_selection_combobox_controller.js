@@ -9,11 +9,32 @@ export default class extends Controller {
     selectPropertyName: { type: String, default: "aria-checked" },
     defaultValue: String,
     noSelectionLabel: { type: String, default: "No selection" },
-    labelPrefix: String
+    labelPrefix: String,
+    urlParamName: String,
+    wordConnector: { type: String, default: "or" }
   }
 
   connect() {
+    this.#syncFromUrl()
     this.refresh()
+  }
+
+  syncFromUrl() {
+    this.#syncFromUrl()
+    this.refresh()
+  }
+
+  #syncFromUrl() {
+    if (!this.hasUrlParamNameValue) return
+
+    const url = new URL(window.location.href)
+    const selectedIds = url.searchParams.getAll(this.urlParamNameValue)
+
+    this.itemTargets.forEach(item => {
+      const value = item.dataset.multiSelectionComboboxValue
+      const shouldBeSelected = selectedIds.includes(value)
+      item.setAttribute(this.selectPropertyNameValue, shouldBeSelected ? "true" : "false")
+    })
   }
 
   change(event) {
@@ -43,9 +64,10 @@ export default class extends Controller {
     }
 
     const labels = this.#selectedItems.map(item => item.dataset.multiSelectionComboboxLabel)
+    const connector = this.wordConnectorValue
     const sentence = toSentence(labels, {
-      two_words_connector: " or ",
-      last_word_connector: ", or "
+      two_words_connector: ` ${connector} `,
+      last_word_connector: `, ${connector} `
     })
 
     return this.hasLabelPrefixValue ? `${this.labelPrefixValue} ${sentence}` : sentence

@@ -18,8 +18,8 @@ class Filter < ApplicationRecord
 
   def cards
     @cards ||= begin
-      # If filtering beads boards with labels, use BeadsCardQuery
-      if filtering_beads_boards_with_labels?
+      # If filtering beads boards with tags, fetch from beads API
+      if filtering_beads_boards_with_tags?
         beads_cards
       else
         result = creator.accessible_cards.preloaded.published
@@ -70,19 +70,39 @@ class Filter < ApplicationRecord
   end
 
   private
-    def filtering_beads_boards_with_labels?
-      labels.present? && boards.present? && boards.all?(&:beads_enabled?)
+    def filtering_beads_boards_with_tags?
+      return false unless tags.present?
+      target_boards = boards.present? ? boards : creator.boards
+      target_boards.any?(&:beads_enabled?)
     end
 
     def beads_cards
-      # Fetch issues from all beads boards with label filtering
-      all_issues = boards.flat_map do |board|
+      # Separate tags into categories for beads API
+      # Priority tags (p0-p4) map to beads priority field, not labels
+      # Type tags (bug, feature, epic, chore) map to beads issue_type field
+      tag_titles = tags.map(&:title)
+
+      priority_tags = tag_titles.select { |t| t.match?(/^p[0-4]$/) }
+      type_tags = tag_titles & %w[bug feature epic chore]
+      label_filters = tag_titles - priority_tags - type_tags
+
+      # Build filter params
+      filter_params = {}
+      filter_params[:labels] = label_filters if label_filters.present?
+      filter_params[:priority] = priority_tags.first.sub("p", "").to_i if priority_tags.one?
+      filter_params[:issue_type] = type_tags.first if type_tags.one?
+
+      # If no boards selected, search all user's beads boards
+      target_boards = boards.present? ? boards : creator.boards
+
+      # Fetch issues from all beads boards with filtering
+      all_issues = target_boards.flat_map do |board|
         next [] unless board.beads_enabled?
         client = board.beads_client
         next [] unless client
 
         begin
-          issues = client.list(labels: labels)
+          issues = filter_params.present? ? client.list(**filter_params) : client.list
           issues.map do |data|
             issue = BeadsIssue.new(data)
             issue.board = board
@@ -92,6 +112,15 @@ class Filter < ApplicationRecord
           Rails.logger.warn("Filter: Daemon not running for board #{board.id}")
           []
         end
+      end
+
+      # Post-filter for multiple priorities or types (beads API only supports single values)
+      if priority_tags.many?
+        priorities = priority_tags.map { |t| t.sub("p", "").to_i }
+        all_issues = all_issues.select { |i| priorities.include?(i.priority) }
+      end
+      if type_tags.many?
+        all_issues = all_issues.select { |i| type_tags.include?(i.issue_type) }
       end
 
       # Sort by priority and created_at

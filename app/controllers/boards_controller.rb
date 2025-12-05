@@ -70,7 +70,12 @@ class BoardsController < ApplicationController
 
     def show_filtered_cards
       @filter.board_ids = [ @board.id ]
-      set_page_and_extract_portion_from @filter.cards
+      cards = @filter.cards
+      if cards.is_a?(Array)
+        @page = OpenStruct.new(records: cards, used?: cards.any?)
+      else
+        set_page_and_extract_portion_from cards
+      end
     end
 
     def show_columns
