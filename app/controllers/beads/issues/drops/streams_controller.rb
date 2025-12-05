@@ -18,7 +18,7 @@ class Beads::Issues::Drops::StreamsController < ApplicationController
 
     # Reload and refresh the card container
     reload_issue
-    render turbo_stream: turbo_stream.replace([@issue, :card_container], partial: "cards/container", method: :morph, locals: { card: @issue })
+    @card = @issue
   rescue BeadsClient::Error => e
     render json: { error: e.message }, status: :unprocessable_entity
   end

@@ -1,2 +1,5 @@
-<%# Refresh the Not Now column %>
+<%# Replace the card container to show updated state %>
+<%= turbo_stream.replace([@issue, :card_container], partial: "cards/container", method: :morph, locals: { card: @issue }) %>
+
+<%# Also refresh the Not Now column %>
 <%= turbo_stream.replace("not-now", partial: "boards/show/not_now", method: :morph, locals: { board: @board }) %>

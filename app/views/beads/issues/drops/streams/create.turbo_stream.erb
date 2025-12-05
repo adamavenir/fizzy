@@ -1,2 +1,5 @@
-<%# Refresh the stream (Maybe?) column %>
+<%# Replace the card container to show updated state %>
+<%= turbo_stream.replace([@issue, :card_container], partial: "cards/container", method: :morph, locals: { card: @issue }) %>
+
+<%# Also refresh the stream (Maybe?) column %>
 <%= turbo_stream.replace("the-stream", partial: "boards/show/stream", method: :morph, locals: { board: @board, page: OpenStruct.new(used?: false) }) %>

@@ -129,6 +129,26 @@ class BeadsIssue
     self
   end
 
+  # Cache key for fragment caching - includes updated_at to invalidate cache
+  def cache_key(*timestamp_names)
+    return "beads_issue/new" unless persisted?
+
+    case
+    when timestamp_names.any?
+      # Rails is asking for specific timestamps - ignore and use our own
+      "beads_issue/#{id}-#{cache_version}"
+    when persisted? && updated_at.present?
+      "beads_issue/#{id}-#{updated_at.utc.to_fs(:usec)}"
+    else
+      "beads_issue/#{id}"
+    end
+  end
+
+  # Cache version for Rails fragment caching (updated_at digest)
+  def cache_version
+    updated_at&.utc&.to_fs(:usec)
+  end
+
   # Priority display helpers
   def priority_name
     case priority

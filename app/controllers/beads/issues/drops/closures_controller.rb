@@ -15,8 +15,11 @@ class Beads::Issues::Drops::ClosuresController < ApplicationController
     # Close the issue
     client.close(@issue.id)
 
-    # Remove the card from the current view (it's now in Done)
-    render turbo_stream: turbo_stream.remove(@issue.dom_id)
+    # Reload the issue with updated data
+    data = client.show(@issue.id)
+    @issue = BeadsIssue.new(data)
+    @issue.board = @board
+    @card = @issue
   rescue BeadsClient::Error => e
     render json: { error: e.message }, status: :unprocessable_entity
   end

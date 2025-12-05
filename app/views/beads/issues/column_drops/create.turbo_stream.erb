@@ -1,1 +1,5 @@
+<%# Replace the card container to show updated state %>
+<%= turbo_stream.replace([@card, :card_container], partial: "cards/container", method: :morph, locals: { card: @card }) %>
+
+<%# Also refresh the target column %>
 <%= turbo_stream.replace(dom_id(@target_column), partial: "boards/show/column", method: :morph, locals: { column: @target_column }) %>

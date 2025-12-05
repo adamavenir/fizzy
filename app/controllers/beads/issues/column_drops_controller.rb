@@ -19,6 +19,12 @@ class Beads::Issues::ColumnDropsController < ApplicationController
     else
       client.update(@issue.id, status: @target_column.beads_value)
     end
+
+    # Reload the issue with updated data
+    data = client.show(@issue.id)
+    @issue = BeadsIssue.new(data)
+    @issue.board = @board
+    @card = @issue
   rescue BeadsClient::Error => e
     render json: { error: e.message }, status: :unprocessable_entity
   end

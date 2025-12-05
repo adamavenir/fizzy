@@ -1,2 +1,5 @@
-<%# Refresh the Done column %>
+<%# Replace the card container to show closed state %>
+<%= turbo_stream.replace([@card, :card_container], partial: "cards/container", method: :morph, locals: { card: @card }) %>
+
+<%# Also refresh the Done column %>
 <%= turbo_stream.replace("closed-cards", partial: "boards/show/closed", method: :morph, locals: { board: @board }) %>
