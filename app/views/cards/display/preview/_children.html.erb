@@ -1,4 +1,4 @@
-<% if card.respond_to?(:has_children?) && card.has_children? %>
+<% if card.respond_to?(:open_child_count) && card.open_child_count > 0 %>
   <div class="card__children align-center gap-half flex-item-justify-end flex-item-no-shrink">
     <span class="children__icon">
       <%= icon_tag "list-tree" %>

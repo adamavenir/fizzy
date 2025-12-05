@@ -3,13 +3,12 @@ class Boards::Columns::NotNowsController < ApplicationController
 
   def show
     if @board.beads_enabled?
-      # Show beads issues with fizzy:not-now label
-      issues = @board.beads_client.list(status: "open", labels: ["fizzy:not-now"])
-      @beads_cards = issues.map do |data|
-        issue = BeadsIssue.new(data)
-        issue.board = @board
-        issue
-      end
+      # Use BeadsCardQuery with a temporary Column-like object to get proper filtering
+      column_stub = OpenStruct.new(
+        column_type: "fizzy_tag",
+        beads_value: "fizzy:not-now"
+      )
+      @beads_cards = BeadsCardQuery.new(@board).for_column(column_stub)
       @page = OpenStruct.new(records: @beads_cards, used?: @beads_cards.any?)
     else
       set_page_and_extract_portion_from @board.cards.postponed.reverse_chronologically.with_golden_first.preloaded
