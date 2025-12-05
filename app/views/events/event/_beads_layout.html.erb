@@ -1,48 +1,80 @@
-<%= link_to issue_path(board_id: event.board.id, issue_id: card.id),
-      id: dom_id(event, "timelined"),
-      class: "event event--#{ event.action } #{ "golden-effect" if event.card.golden? } center-block flex flex-column full-width align-start justify-start position-relative",
-      style: "--card-color: #{ card.closed? ? "var(--color-card-complete)" : card.color };",
-      target: "_top",
-      data: {
-        related_element_target: "related",
-        related_element_group_value: card.id,
-        action: "mouseover->related-element#highlight mouseout->related-element#unhighlight" } do %>
-  <div class="card__header flex align-start gap full-width">
-    <h4 class="card__board flex-inline align-start">
-      <span class="card__id">
-        <span class="for-screen-reader">Card number</span>
-        <%= card.number %>
-      </span>
-      <span class="card__board-name">
-        <span class="overflow-ellipsis"><%= event.board.name %></span>
-      </span>
-    </h4>
+<% if card.is_a?(NullBeadsIssue) %>
+  <%# Non-clickable version for issues that can't be loaded %>
+  <div id="<%= dom_id(event, "timelined") %>"
+       class="event event--<%= event.action %> center-block flex flex-column full-width align-start justify-start position-relative"
+       style="--card-color: var(--color-card-default);">
+    <div class="card__header flex align-start gap full-width">
+      <h4 class="card__board flex-inline align-start">
+        <span class="card__id">
+          <span class="for-screen-reader">Card number</span>
+          <%= card.number %>
+        </span>
+        <span class="card__board-name">
+          <span class="overflow-ellipsis"><%= event.board.name %></span>
+        </span>
+      </h4>
+    </div>
+    <div class="event__content">
+      <div class="flex align-start gap">
+        <div class="avatar txt-x-small">
+          <%= avatar_image_tag(event.creator) %>
+        </div>
+        <div class="flex flex-column min-width txt-small align-start txt-align-start" style="color: color-mix(in srgb, var(--card-color) 40%, var(--color-ink));">
+          <strong class="event__title txt-break overflow-line-clamp txt-tight-lines">
+            <%= event.description_for(Current.user).to_html %>
+          </strong>
+          <%= yield %>
+        </div>
+      </div>
+    </div>
+  </div>
+<% else %>
+  <%= link_to issue_path(board_id: event.board.id, issue_id: card.id),
+        id: dom_id(event, "timelined"),
+        class: "event event--#{ event.action } #{ "golden-effect" if card.golden? } center-block flex flex-column full-width align-start justify-start position-relative",
+        style: "--card-color: #{ card.closed? ? "var(--color-card-complete)" : card.color };",
+        target: "_top",
+        data: {
+          related_element_target: "related",
+          related_element_group_value: card.id,
+          action: "mouseover->related-element#highlight mouseout->related-element#unhighlight" } do %>
+    <div class="card__header flex align-start gap full-width">
+      <h4 class="card__board flex-inline align-start">
+        <span class="card__id">
+          <span class="for-screen-reader">Card number</span>
+          <%= card.number %>
+        </span>
+        <span class="card__board-name">
+          <span class="overflow-ellipsis"><%= event.board.name %></span>
+        </span>
+      </h4>
 
-    <% unless event.action.in?(%w[ card_closed card_published card_reopened beads_issue_closed beads_issue_published ]) %>
-      <span class="event__icon flex-item-justify-end txt-reversed">
-        <%= icon_tag event_action_icon(event) %>
-      </span>
+      <% unless event.action.in?(%w[ card_closed card_published card_reopened beads_issue_closed beads_issue_published beads_issue_reopened ]) %>
+        <span class="event__icon flex-item-justify-end txt-reversed">
+          <%= icon_tag event_action_icon(event) %>
+        </span>
+      <% end %>
+    </div>
+    <div class="event__content">
+      <div class="flex align-start gap">
+        <div class="avatar txt-x-small">
+          <%= avatar_image_tag(event.creator) %>
+        </div>
+
+        <div class="flex flex-column min-width txt-small align-start txt-align-start" style="color: color-mix(in srgb, var(--card-color) 40%, var(--color-ink));">
+          <strong class="event__title txt-break overflow-line-clamp txt-tight-lines">
+            <%= event.description_for(Current.user).to_html %>
+          </strong>
+
+          <%= yield %>
+        </div>
+      </div>
+    </div>
+
+    <% if card.image.present? %>
+      <div class="card__background">
+        <%= image_tag card.image.presence || "", size: 120, aria: { hidden: true } %>
+      </div>
     <% end %>
-  </div>
-  <div class="event__content">
-    <div class="flex align-start gap">
-      <div class="avatar txt-x-small">
-        <%= avatar_image_tag(event.creator) %>
-      </div>
-
-      <div class="flex flex-column min-width txt-small align-start txt-align-start" style="color: color-mix(in srgb, var(--card-color) 40%, var(--color-ink));">
-        <strong class="event__title txt-break overflow-line-clamp txt-tight-lines">
-          <%= event.description_for(Current.user).to_html %>
-        </strong>
-
-        <%= yield %>
-      </div>
-    </div>
-  </div>
-
-  <% if event.card.image.present? %>
-    <div class="card__background">
-      <%= image_tag event.card.image.presence || "", size: 120, aria: { hidden: true } %>
-    </div>
   <% end %>
 <% end %>

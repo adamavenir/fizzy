@@ -174,20 +174,32 @@ class BeadsBridge
         # Continue - cache will be missing but not fatal for this mutation
       end
 
-      # Create published event
+      # Create published event (with deduplication)
       begin
-        creator = find_or_create_creator(issue.creator)
-
-        Event.create!(
+        # Check if published event already exists within the last 5 seconds
+        recent_published = Event.where(
           board: board,
-          creator: creator,
-          eventable_type: "BeadsIssue",
-          eventable_id: beads_issue_to_uuid(issue.id),
-          action: "beads_issue_published",
-          beads_issue_id: issue.id
-        )
+          action: "beads_issue_published"
+        ).where("created_at > ?", 5.seconds.ago)
+         .where("particulars->>'beads_issue_id' = ?", issue.id)
+         .exists?
 
-        Rails.logger.info("BeadsBridge: Created beads_issue_published event for #{issue.id}")
+        unless recent_published
+          creator = find_or_create_creator(issue.creator)
+
+          Event.create!(
+            board: board,
+            creator: creator,
+            eventable_type: "BeadsIssue",
+            eventable_id: beads_issue_to_uuid(issue.id),
+            action: "beads_issue_published",
+            beads_issue_id: issue.id
+          )
+
+          Rails.logger.info("BeadsBridge: Created beads_issue_published event for #{issue.id}")
+        else
+          Rails.logger.debug("BeadsBridge: Skipping duplicate published event for #{issue.id}")
+        end
       rescue ActiveRecord::RecordInvalid => e
         Rails.logger.error("BeadsBridge: Failed to create published event for #{issue.id}: #{e.message}")
       end
@@ -295,6 +307,21 @@ class BeadsBridge
 
     # Event creation methods
     def create_event_for_change(issue, change)
+      # Deduplication: Check if an identical event exists within the last 5 seconds
+      # This prevents duplicate events from rapid-fire mutation processing
+      # while allowing legitimate repeated actions (e.g., assign/unassign/reassign)
+      recent_event = Event.where(
+        board: board,
+        action: change.event_action
+      ).where("created_at > ?", 5.seconds.ago)
+       .where("particulars->>'beads_issue_id' = ?", issue.id)
+       .exists?
+
+      if recent_event
+        Rails.logger.debug("BeadsBridge: Skipping duplicate event #{change.event_action} for #{issue.id}")
+        return
+      end
+
       creator = find_or_create_creator(change.actor_email)
 
       event_attributes = {

@@ -42,7 +42,11 @@ class Event::Description
     end
 
     def card
-      @card ||= event.action.comment_created? ? event.eventable.card : event.eventable
+      @card ||= if event.action.comment_created?
+        event.eventable&.card || event.card
+      else
+        event.card
+      end
     end
 
     def comment_sentence(creator, card_title)

@@ -112,7 +112,7 @@ module Beads
       new_labels = Array(new_state[:labels])
       added = new_labels - old_labels
       removed = old_labels - new_labels
-      [added, removed]
+      [ added, removed ]
     end
 
     def detect_new_comments
