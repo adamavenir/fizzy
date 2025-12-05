@@ -31,7 +31,7 @@ module Filter::Fields
 
   included do
     store_accessor :fields, :assignment_status, :indexed_by, :sorted_by, :terms,
-      :card_ids, :creation, :closure
+      :card_ids, :creation, :closure, :labels
 
     def assignment_status
       super.to_s.inquiry
@@ -58,6 +58,14 @@ module Filter::Fields
     end
 
     def terms=(value)
+      super(Array(value).filter(&:present?))
+    end
+
+    def labels
+      Array(super)
+    end
+
+    def labels=(value)
       super(Array(value).filter(&:present?))
     end
   end

@@ -24,5 +24,11 @@
       <span class="for-screen-reader">Maximize column</span>
     <% end %>
   </header>
-  <%= column_frame_tag dom_id(column, :cards), src: board_column_path(column.board, column) %>
+  <% if column.board.beads_enabled? %>
+    <%= column_frame_tag dom_id(column, :cards) do %>
+      <%= render "boards/columns/list", cards: column.beads_cards, draggable: true %>
+    <% end %>
+  <% else %>
+    <%= column_frame_tag dom_id(column, :cards), src: board_column_path(column.board, column) %>
+  <% end %>
 <% end %>

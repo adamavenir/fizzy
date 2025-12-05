@@ -6,7 +6,13 @@ class CardsController < ApplicationController
   before_action :ensure_permission_to_administer_card, only: %i[ destroy ]
 
   def index
-    set_page_and_extract_portion_from @filter.cards
+    cards = @filter.cards
+    if cards.is_a?(Array)
+      # Beads cards come as an array, wrap in OpenStruct for view compatibility
+      @page = OpenStruct.new(records: cards, used?: cards.any?)
+    else
+      set_page_and_extract_portion_from cards
+    end
   end
 
   def create

@@ -79,6 +79,9 @@ class BoardsController < ApplicationController
           # Test connection first to trigger auto-start or get meaningful error
           @board.beads_client.ping
 
+          # Eager load all columns to avoid N+1 HTTP requests from lazy Turbo Frames
+          query = BeadsCardQuery.new(@board)
+
           # Show beads issues with fizzy:maybe label (triage inbox)
           issues = @board.beads_client.list(status: "open", labels: ["fizzy:maybe"])
           @beads_cards = issues.map do |data|
@@ -87,6 +90,30 @@ class BoardsController < ApplicationController
             issue
           end
           @page = OpenStruct.new(records: @beads_cards, used?: @beads_cards.any?)
+
+          # Pre-load all column cards to avoid lazy-loading HTTP overhead
+          @board.columns.sorted.each do |column|
+            column.instance_variable_set(:@beads_cards_cache, query.for_column(column))
+          end
+
+          # Pre-load Not Now and Closed columns as well
+          not_now_stub = OpenStruct.new(
+            column_type: "fizzy_tag",
+            beads_value: "fizzy:not-now"
+          )
+          @not_now_cards = query.for_column(not_now_stub)
+
+          closed_stub = OpenStruct.new(
+            column_type: "fizzy_tag",
+            beads_value: "closed"
+          )
+          # For closed, we need to fetch closed status issues
+          closed_issues = @board.beads_client.list(status: "closed")
+          @closed_cards = closed_issues.map do |data|
+            issue = BeadsIssue.new(data)
+            issue.board = @board
+            issue
+          end.sort_by { |i| [i.priority || 2, i.created_at || Time.at(0)] }
         rescue BeadsClient::Error => e
           @beads_error = e.message
           flash.now[:alert] = e.message

@@ -13,6 +13,7 @@ module Filter::Params
     closer_ids: [],
     board_ids: [],
     tag_ids: [],
+    labels: [],
     terms: []
   ]
 
@@ -62,6 +63,7 @@ module Filter::Params
       params[:assignee_ids]      = assignees.ids
       params[:creator_ids]       = creators.ids
       params[:closer_ids]        = closers.ids
+      params[:labels]            = labels
     end.compact_blank.reject(&method(:default_value?))
   end
 

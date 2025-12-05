@@ -19,6 +19,9 @@ class Column < ApplicationRecord
 
   # Returns BeadsIssue objects for this column
   def beads_cards
+    # Use cached cards if available (set by BoardsController for eager loading)
+    return @beads_cards_cache if defined?(@beads_cards_cache)
+
     return [] unless board.repo_path.present?
     BeadsCardQuery.new(board).for_column(self)
   end

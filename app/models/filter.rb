@@ -18,25 +18,30 @@ class Filter < ApplicationRecord
 
   def cards
     @cards ||= begin
-      result = creator.accessible_cards.preloaded.published
-      result = result.indexed_by(indexed_by)
-      result = result.sorted_by(sorted_by)
-      result = result.where(id: card_ids) if card_ids.present?
-      result = result.where.missing(:not_now) unless include_not_now_cards?
-      result = result.open unless include_closed_cards?
-      result = result.unassigned if assignment_status.unassigned?
-      result = result.assigned_to(assignees.ids) if assignees.present?
-      result = result.where(creator_id: creators.ids) if creators.present?
-      result = result.where(board: boards.ids) if boards.present?
-      result = result.tagged_with(tags.ids) if tags.present?
-      result = result.where("cards.created_at": creation_window) if creation_window
-      result = result.closed_at_window(closure_window) if closure_window
-      result = result.closed_by(closers) if closers.present?
-      result = terms.reduce(result) do |result, term|
-        result.mentioning(term, user: creator)
-      end
+      # If filtering beads boards with labels, use BeadsCardQuery
+      if filtering_beads_boards_with_labels?
+        beads_cards
+      else
+        result = creator.accessible_cards.preloaded.published
+        result = result.indexed_by(indexed_by)
+        result = result.sorted_by(sorted_by)
+        result = result.where(id: card_ids) if card_ids.present?
+        result = result.where.missing(:not_now) unless include_not_now_cards?
+        result = result.open unless include_closed_cards?
+        result = result.unassigned if assignment_status.unassigned?
+        result = result.assigned_to(assignees.ids) if assignees.present?
+        result = result.where(creator_id: creators.ids) if creators.present?
+        result = result.where(board: boards.ids) if boards.present?
+        result = result.tagged_with(tags.ids) if tags.present?
+        result = result.where("cards.created_at": creation_window) if creation_window
+        result = result.closed_at_window(closure_window) if closure_window
+        result = result.closed_by(closers) if closers.present?
+        result = terms.reduce(result) do |result, term|
+          result.mentioning(term, user: creator)
+        end
 
-      result.distinct
+        result.distinct
+      end
     end
   end
 
@@ -65,6 +70,34 @@ class Filter < ApplicationRecord
   end
 
   private
+    def filtering_beads_boards_with_labels?
+      labels.present? && boards.present? && boards.all?(&:beads_enabled?)
+    end
+
+    def beads_cards
+      # Fetch issues from all beads boards with label filtering
+      all_issues = boards.flat_map do |board|
+        next [] unless board.beads_enabled?
+        client = board.beads_client
+        next [] unless client
+
+        begin
+          issues = client.list(labels: labels)
+          issues.map do |data|
+            issue = BeadsIssue.new(data)
+            issue.board = board
+            issue
+          end
+        rescue BeadsClient::DaemonNotRunningError => e
+          Rails.logger.warn("Filter: Daemon not running for board #{board.id}")
+          []
+        end
+      end
+
+      # Sort by priority and created_at
+      all_issues.sort_by { |i| [i.priority || 2, i.created_at || Time.at(0)] }
+    end
+
     def include_closed_cards?
       only_closed? || card_ids.present?
     end

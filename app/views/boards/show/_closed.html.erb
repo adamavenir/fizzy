@@ -20,5 +20,11 @@
     <%= render "boards/show/expander", title: "Done", count: closed_count, column_id: "closed-cards" %>
     <%= render "boards/show/menu/maximize", column_path: board_columns_closed_path(board) %>
   </header>
-  <%= column_frame_tag :closed_column, src: board_columns_closed_path(board) %>
+  <% if board.beads_enabled? && defined?(@closed_cards) %>
+    <%= column_frame_tag :closed_column do %>
+      <%= render "boards/columns/list", cards: @closed_cards, draggable: true %>
+    <% end %>
+  <% else %>
+    <%= column_frame_tag :closed_column, src: board_columns_closed_path(board) %>
+  <% end %>
 <% end %>

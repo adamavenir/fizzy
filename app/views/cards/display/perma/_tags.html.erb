@@ -22,9 +22,10 @@
     <div class="min-width overflow-ellipsis">
       <% card.tags.each_with_index do |tag, index| %>
         <% if card.is_a?(BeadsIssue) %>
-          <span class="card__tag btn btn--plain min-width txt-uppercase fill-transparent">
-            <%= tag.title %><%= "," unless index == card.tags.size - 1 %>
-          </span>
+          <%= link_to cards_path(board_ids: [ card.board ], labels: [ tag.title ]),
+                class: "card__tag btn btn--plain min-width txt-uppercase fill-transparent" do %>
+            <%= tag.title %>
+          <% end %><%= "," unless index == card.tags.size - 1 %>
         <% else %>
           <%= link_to cards_path(board_ids: [ card.board ], tag_ids: [ tag.id ]),
                 class: "card__tag btn btn--plain min-width txt-uppercase fill-transparent" do %>
