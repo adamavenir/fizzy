@@ -203,7 +203,7 @@ class BeadsIssue
 
   # Fizzy Card compatibility methods
   def golden?
-    priority == 0  # Critical issues get the golden effect
+    issue_type == "epic" || priority == 0
   end
 
   def postponed?
@@ -373,7 +373,8 @@ class BeadsIssue
         name: assignee,
         familiar_name: assignee,
         to_param: assignee.parameterize,
-        id: nil
+        id: nil,
+        account: board.account
       )]
     end
   end

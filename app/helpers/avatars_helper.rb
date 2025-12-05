@@ -41,8 +41,13 @@ module AvatarsHelper
     # Use Fizzy logo for Beads creator
     if user.respond_to?(:to_param) && user.to_param == "beads"
       image_tag "logo.png", aria: { hidden: "true" }, size: 48, title: user.name, **options
-    else
+    elsif user.respond_to?(:account) && user.account
       image_tag user_avatar_url(user, script_name: user.account.slug), aria: { hidden: "true" }, size: 48, title: user.name, **options
+    else
+      # Fallback for users without account (e.g., OpenStruct assignees)
+      tag.span class: "avatar", style: "background-color: #{avatar_background_color(user)};" do
+        user.respond_to?(:initials) ? user.initials : user.name.first(2).upcase
+      end
     end
   end
 end
