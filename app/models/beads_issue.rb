@@ -28,6 +28,7 @@ class BeadsIssue
   attribute :closed_at, :datetime
   attribute :comments, default: -> { [] }
   attribute :dependencies, default: -> { [] }
+  attribute :dependents, default: -> { [] }
   attribute :design, :string
   attribute :acceptance_criteria, :string
   attribute :notes, :string
@@ -38,7 +39,7 @@ class BeadsIssue
 
   KNOWN_ATTRIBUTES = %i[
     id title description status priority issue_type assignee labels
-    created_at updated_at closed_at comments dependencies design
+    created_at updated_at closed_at comments dependencies dependents design
     acceptance_criteria notes external_ref dependency_count blocked_by blocks
   ].freeze
 
@@ -412,5 +413,74 @@ class BeadsIssue
     return result unless result == 0
 
     (created_at || Time.at(0)) <=> (other.created_at || Time.at(0))
+  end
+
+  # Parent-child relationship detection
+  def dependencies_data
+    @dependencies_data || dependencies || []
+  end
+
+  def dependents_data
+    @dependents_data || dependents || []
+  end
+
+  def is_child?
+    @is_child ||= dependencies_data.any? { |d| d[:dependency_type] == "parent-child" }
+  end
+
+  def parent_issue_id
+    @parent_id ||= begin
+      parent_dep = dependencies_data.find { |d| d[:dependency_type] == "parent-child" }
+      parent_dep ? parent_dep[:id] : nil
+    end
+  end
+
+  def child_issues
+    @child_issues ||= dependents_data.select { |d| d[:dependency_type] == "parent-child" }
+  end
+
+  def open_child_count
+    @open_child_count ||= child_issues.count { |c| c[:status] == "open" }
+  end
+
+  def has_children?
+    child_issues.any?
+  end
+
+  # Categorize dependencies for related cards section
+  def parent_cards
+    dependencies_data
+      .select { |d| d[:dependency_type] == "parent-child" }
+      .map { |d| dependency_to_issue(d) }
+  end
+
+  def child_cards
+    dependents_data
+      .select { |d| d[:dependency_type] == "parent-child" }
+      .map { |d| dependency_to_issue(d) }
+  end
+
+  def blocking_cards
+    dependencies_data
+      .select { |d| d[:dependency_type] == "blocks" }
+      .map { |d| dependency_to_issue(d) }
+  end
+
+  def related_cards
+    dependencies_data
+      .select { |d| d[:dependency_type] == "related" || d[:dependency_type] == "discovered-from" }
+      .map { |d| dependency_to_issue(d) }
+  end
+
+  def has_related_cards?
+    parent_cards.any? || child_cards.any? || blocking_cards.any? || related_cards.any?
+  end
+
+  private
+
+  def dependency_to_issue(dep_hash)
+    issue = BeadsIssue.new(dep_hash)
+    issue.board = self.board
+    issue
   end
 end
