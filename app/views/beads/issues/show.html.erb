@@ -9,5 +9,6 @@
 
 <div>
   <%= render "cards/container", card: @issue %>
+  <%= render "beads/issues/related_cards", issue: @issue if @issue.has_related_cards? %>
   <%= render "cards/messages", card: @issue %>
 </div>

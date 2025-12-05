@@ -16,7 +16,18 @@ class BeadsCardQuery
     return [] unless @client
 
     issues = fetch_issues_for_column(column)
-    sort_issues(wrap_issues(issues))
+    wrapped = wrap_issues(issues)
+
+    # Enrich with parent-child data and filter if needed
+    if needs_parent_child_filtering?(column)
+      enrich_with_parent_child_data(wrapped)
+      wrapped = filter_children(wrapped)
+    elsif needs_parent_child_badges?(column)
+      # Still enrich for badge display, but don't filter
+      enrich_with_parent_child_data(wrapped)
+    end
+
+    sort_issues(wrapped)
   rescue BeadsClient::DaemonNotRunningError => e
     Rails.logger.warn("BeadsCardQuery: Daemon not running for board #{@board.id}")
     []
@@ -68,5 +79,46 @@ class BeadsCardQuery
     # Sort by priority (0=highest), then by created_at (oldest first)
     def sort_issues(issues)
       issues.sort_by { |i| [i.priority || 2, i.created_at || Time.at(0)] }
+    end
+
+    def needs_parent_child_filtering?(column)
+      # Hide children in: Open, Not Now
+      column.beads_value == "open" || column.beads_value == "fizzy:not-now"
+    end
+
+    def needs_parent_child_badges?(column)
+      # Show badges in all other columns
+      !needs_parent_child_filtering?(column)
+    end
+
+    def enrich_with_parent_child_data(issues)
+      # Fetch dependency metadata for each issue
+      issues.each do |issue|
+        begin
+          details = @client.show(issue.id)
+
+          # Inject dependency/dependent data (convert to symbol keys for BeadsIssue compatibility)
+          dependencies = (details["dependencies"] || []).map(&:deep_symbolize_keys)
+          dependents = (details["dependents"] || []).map(&:deep_symbolize_keys)
+
+          issue.instance_variable_set(:@dependencies_data, dependencies)
+          issue.instance_variable_set(:@dependents_data, dependents)
+
+          # Clear memoization to force recalculation
+          issue.instance_variable_set(:@is_child, nil)
+          issue.instance_variable_set(:@child_issues, nil)
+          issue.instance_variable_set(:@open_child_count, nil)
+        rescue => e
+          Rails.logger.warn("Failed to fetch dependencies for #{issue.id}: #{e.message}")
+          # Set empty arrays as fallback
+          issue.instance_variable_set(:@dependencies_data, [])
+          issue.instance_variable_set(:@dependents_data, [])
+        end
+      end
+    end
+
+    def filter_children(issues)
+      # Remove issues that are children of other issues
+      issues.reject(&:is_child?)
     end
 end

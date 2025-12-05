@@ -1,0 +1,10 @@
+<% if card.respond_to?(:has_children?) && card.has_children? %>
+  <div class="card__children align-center gap-half flex-item-justify-end flex-item-no-shrink">
+    <span class="children__icon">
+      <%= icon_tag "list-tree" %>
+    </span>
+    <strong title="<%= pluralize(card.open_child_count, 'open child task') %>">
+      <%= card.open_child_count %>
+    </strong>
+  </div>
+<% end %>

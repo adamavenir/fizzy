@@ -1,0 +1,48 @@
+<%= link_to issue_path(board_id: related_card.board.id, issue_id: related_card.id),
+            class: "related-card",
+            data: {
+              turbo_frame: "_top",
+              turbo_action: "advance",
+              action: "click->turbo-navigation#rememberLocation"
+            } do %>
+  <%= card_article_tag related_card, class: "card card--compact" do %>
+    <header class="card__header">
+      <label class="card__board">
+        <span class="card__id">
+          <%= related_card.number %>
+        </span>
+      </label>
+
+      <% if related_card.tags.any? %>
+        <div class="card__tags">
+          <%= icon_tag "tag-outline", class: "translucent" %>
+          <div class="min-width overflow-ellipsis">
+            <%= related_card.tags.first.title %>
+          </div>
+        </div>
+      <% end %>
+    </header>
+
+    <div class="card__body">
+      <h3 class="card__title overflow-line-clamp">
+        <%= related_card.title || "Untitled" %>
+      </h3>
+    </div>
+
+    <footer class="card__footer">
+      <span class="card__meta-text card__meta-text--status">
+        <%= related_card.status.upcase.gsub("_", " ") %>
+      </span>
+    </footer>
+
+    <% if related_card.closed? %>
+      <div class="card__closed">
+        <span class="card__closed-title" data-text="Done">Done</span>
+      </div>
+    <% elsif related_card.postponed? %>
+      <div class="card__closed">
+        <span class="card__closed-title" data-text="Not Now">Not Now</span>
+      </div>
+    <% end %>
+  <% end %>
+<% end %>

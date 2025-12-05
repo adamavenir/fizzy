@@ -201,6 +201,28 @@
     padding-block: var(--block-space-half);
   }
 
+  .card__children {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    padding: 0.25rem 0.5rem;
+    background: var(--color-bg-secondary);
+    border-radius: 0.25rem;
+  }
+
+  .children__icon {
+    opacity: 0.6;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .card__children strong {
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+
   /* Meta
   /* ------------------------------------------------------------------------ */
 

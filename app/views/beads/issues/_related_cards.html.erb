@@ -1,0 +1,39 @@
+<section class="related-cards gap center">
+  <h2 class="related-cards__title">Related Cards</h2>
+
+  <% if issue.parent_cards.any? %>
+    <div class="related-cards__group">
+      <h3 class="related-cards__group-title">Part of</h3>
+      <div class="related-cards__grid">
+        <%= render partial: "beads/issues/related_card", collection: issue.parent_cards, as: :related_card %>
+      </div>
+    </div>
+  <% end %>
+
+  <% if issue.child_cards.any? %>
+    <div class="related-cards__group">
+      <h3 class="related-cards__group-title">Tasks</h3>
+      <div class="related-cards__grid">
+        <%= render partial: "beads/issues/related_card", collection: issue.child_cards, as: :related_card %>
+      </div>
+    </div>
+  <% end %>
+
+  <% if issue.blocking_cards.any? %>
+    <div class="related-cards__group">
+      <h3 class="related-cards__group-title">Blocking</h3>
+      <div class="related-cards__grid">
+        <%= render partial: "beads/issues/related_card", collection: issue.blocking_cards, as: :related_card %>
+      </div>
+    </div>
+  <% end %>
+
+  <% if issue.related_cards.any? %>
+    <div class="related-cards__group">
+      <h3 class="related-cards__group-title">Related</h3>
+      <div class="related-cards__grid">
+        <%= render partial: "beads/issues/related_card", collection: issue.related_cards, as: :related_card %>
+      </div>
+    </div>
+  <% end %>
+</section>
