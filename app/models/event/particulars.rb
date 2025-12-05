@@ -11,6 +11,8 @@ module Event::Particulars
       :new_assignee,
       :old_title,
       :new_title,
+      :old_description,
+      :new_description,
       :old_priority,
       :new_priority,
       :labels_added,

@@ -175,7 +175,22 @@ class BeadsBridge
       end
 
       # Create published event
-      create_event_for_creation(issue.id)
+      begin
+        creator = find_or_create_creator(issue.creator)
+
+        Event.create!(
+          board: board,
+          creator: creator,
+          eventable_type: "BeadsIssue",
+          eventable_id: beads_issue_to_uuid(issue.id),
+          action: "beads_issue_published",
+          beads_issue_id: issue.id
+        )
+
+        Rails.logger.info("BeadsBridge: Created beads_issue_published event for #{issue.id}")
+      rescue ActiveRecord::RecordInvalid => e
+        Rails.logger.error("BeadsBridge: Failed to create published event for #{issue.id}: #{e.message}")
+      end
 
       # Broadcast to UI
       broadcast_card_created(issue.id)
@@ -186,7 +201,7 @@ class BeadsBridge
       # 1. Load previous state from cache (BeadsIssueState)
       # 2. Compare to current issue data (ChangeDetector)
       # 3. Get semantic changes (StatusChange, CommentAddition, etc.)
-      # 4. Log changes (or create events in future)
+      # 4. Create events for each change
       # 5. Update cache with new state for next comparison
 
       # Load previous state from cache
@@ -225,9 +240,9 @@ class BeadsBridge
 
       changes = detector.detect_changes
 
-      # Log detected changes
+      # Create events for each detected change
       changes.each do |change|
-        Rails.logger.info("BeadsBridge: Detected change for #{issue.id}: #{change.class.name} - #{change.event_action}")
+        create_event_for_change(issue, change)
       end
 
       # Update cached state
@@ -279,59 +294,67 @@ class BeadsBridge
     end
 
     # Event creation methods
-    def create_event_for_creation(issue_id)
-      issue = fetch_issue(issue_id)
-      return unless issue
+    def create_event_for_change(issue, change)
+      creator = find_or_create_creator(change.actor_email)
 
-      Event.create!(
+      event_attributes = {
         board: board,
-        creator: issue.creator,
+        creator: creator,
         eventable_type: "BeadsIssue",
-        eventable_id: uuid_for_issue(issue_id),
-        action: "beads_issue_published",
-        beads_issue_id: issue_id
-      )
+        eventable_id: beads_issue_to_uuid(issue.id),
+        action: change.event_action,
+        beads_issue_id: issue.id
+      }
+
+      # Add change-specific particulars
+      particulars = change.event_particulars
+      event_attributes.merge!(particulars) if particulars.present?
+
+      Event.create!(event_attributes)
+
+      Rails.logger.info("BeadsBridge: Created event #{change.event_action} for #{issue.id}")
     rescue ActiveRecord::RecordInvalid => e
-      Rails.logger.error("BeadsBridge: Failed to create event for #{issue_id}: #{e.message}")
+      Rails.logger.error("BeadsBridge: Failed to create event: #{e.message}")
     end
 
-    def create_event_for_update(issue_id, mutation)
-      issue = fetch_issue(issue_id)
-      return unless issue
+    def find_or_create_creator(actor)
+      # Handle User objects
+      return actor if actor.is_a?(User)
 
-      # Check if this is a status change by comparing current status
-      # We need to fetch the previous issue state to detect status changes
-      # For now, create a generic update event
-      Event.create!(
-        board: board,
-        creator: issue.creator,
-        eventable_type: "BeadsIssue",
-        eventable_id: uuid_for_issue(issue_id),
-        action: "beads_issue_updated",
-        beads_issue_id: issue_id
-      )
-    rescue ActiveRecord::RecordInvalid => e
-      Rails.logger.error("BeadsBridge: Failed to create update event for #{issue_id}: #{e.message}")
+      # Handle email strings
+      email = actor.is_a?(String) ? actor : nil
+      return beads_user if email.blank?
+
+      # Try to find a User with this email in the account
+      identity = Identity.find_by(email_address: email)
+      if identity
+        user = identity.users.find_by(account: board.account)
+        return user if user
+      end
+
+      # Fall back to beads system user
+      beads_user
     end
 
-    def create_event_for_closure(issue_id)
-      issue = fetch_issue(issue_id)
-      return unless issue
+    def beads_user
+      @beads_user ||= begin
+        # Find beads user by email
+        beads_identity = Identity.find_by(email_address: "hi@fizzybeads.com")
+        if beads_identity
+          user = board.account.users.find_by(identity: beads_identity)
+          return user if user
+        end
 
-      Event.create!(
-        board: board,
-        creator: issue.creator,
-        eventable_type: "BeadsIssue",
-        eventable_id: uuid_for_issue(issue_id),
-        action: "beads_issue_closed",
-        beads_issue_id: issue_id
-      )
-    rescue ActiveRecord::RecordInvalid => e
-      Rails.logger.error("BeadsBridge: Failed to create closure event for #{issue_id}: #{e.message}")
+        # Last resort: use the board creator
+        Rails.logger.warn("BeadsBridge: No beads user found, using board creator as fallback")
+        board.creator
+      end
     end
 
-    def uuid_for_issue(issue_id)
-      # Generate a deterministic UUID from the issue ID using MD5
-      Digest::MD5.hexdigest(issue_id)
+    def beads_issue_to_uuid(issue_id)
+      # Generate deterministic UUID from issue ID for eventable_id
+      # Use MD5 hash converted to UUID format
+      digest = Digest::MD5.hexdigest("beads:#{issue_id}")
+      "#{digest[0..7]}-#{digest[8..11]}-#{digest[12..15]}-#{digest[16..19]}-#{digest[20..31]}"
     end
 end

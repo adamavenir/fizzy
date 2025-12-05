@@ -259,6 +259,7 @@ class BeadsBridgeTest < ActiveSupport::TestCase
 
     issue_data = mock_issue_data("fizzy-test", comments: new_comments)
     @mock_client.stubs(:show).with("fizzy-test").returns(issue_data)
+    @mock_client.stubs(:list_comments).with("fizzy-test").returns(new_comments)
 
     mutation = update_mutation("fizzy-test")
 
@@ -287,6 +288,7 @@ class BeadsBridgeTest < ActiveSupport::TestCase
 
     issue_data = mock_issue_data("fizzy-test", comments: new_comments)
     @mock_client.stubs(:show).with("fizzy-test").returns(issue_data)
+    @mock_client.stubs(:list_comments).with("fizzy-test").returns(new_comments)
 
     mutation = update_mutation("fizzy-test")
 
@@ -353,6 +355,7 @@ class BeadsBridgeTest < ActiveSupport::TestCase
       comments: new_comments
     )
     @mock_client.stubs(:show).with("fizzy-test").returns(issue_data)
+    @mock_client.stubs(:list_comments).with("fizzy-test").returns(new_comments)
 
     mutation = update_mutation("fizzy-test")
 
@@ -437,7 +440,7 @@ class BeadsBridgeTest < ActiveSupport::TestCase
       board: @board,
       creator: @creator,
       eventable_type: "BeadsIssue",
-      eventable_id: @bridge.send(:uuid_for_issue, "fizzy-test"),
+      eventable_id: @bridge.send(:beads_issue_to_uuid, "fizzy-test"),
       action: "beads_issue_published",
       beads_issue_id: "fizzy-test"
     )
@@ -447,6 +450,12 @@ class BeadsBridgeTest < ActiveSupport::TestCase
       "IssueID" => "fizzy-test",
       "Timestamp" => Time.current.iso8601
     }
+
+    # Stub show in case Event tries to load the eventable
+    # Use mock_issue_data to return a valid issue (though it's deleted)
+    @mock_client.stubs(:show).with("fizzy-test").returns(
+      mock_issue_data("fizzy-test", status: "closed", title: "Old issue")
+    )
 
     assert_no_difference "Event.where(beads_issue_id: 'fizzy-test').count" do
       @bridge.send(:process_mutation, mutation)
@@ -492,9 +501,9 @@ class BeadsBridgeTest < ActiveSupport::TestCase
       end
     end
 
-    # Cache should now have valid data
-    state.reload
-    assert_equal "open", state.parsed_snapshot[:status]
+    # Cache should now have valid data (find by issue_id since old record was destroyed)
+    new_state = BeadsIssueState.find_by(board: @board, issue_id: "fizzy-test")
+    assert_equal "open", new_state.parsed_snapshot[:status]
   end
 
   test "updates cache after processing changes" do
@@ -533,15 +542,37 @@ class BeadsBridgeTest < ActiveSupport::TestCase
   end
 
   def create_cached_state(issue_id:, state:)
+    # Merge with defaults to match what mock_issue_data produces
+    # Use fixed timestamp to avoid timing issues
+    fixed_time = "2025-12-04T00:00:00Z"
+    default_state = {
+      id: issue_id,
+      title: "Test Issue",
+      description: "Test description",
+      status: "open",
+      priority: 2,
+      issue_type: "task",
+      assignee: nil,
+      labels: [],
+      comments: [],
+      created_at: fixed_time,
+      updated_at: fixed_time,
+      closed_at: nil
+    }
+
+    full_state = default_state.merge(state)
+
     BeadsIssueState.create!(
       board: @board,
       issue_id: issue_id,
-      snapshot: state.to_json,
+      snapshot: full_state.to_json,
       synced_at: 1.hour.ago
     )
   end
 
   def mock_issue_data(issue_id, **overrides)
+    # Use fixed timestamp to match create_cached_state
+    fixed_time = "2025-12-04T00:00:00Z"
     defaults = {
       id: issue_id,
       title: "Test Issue",
@@ -552,8 +583,8 @@ class BeadsBridgeTest < ActiveSupport::TestCase
       assignee: nil,
       labels: [],
       comments: [],
-      created_at: Time.current.iso8601,
-      updated_at: Time.current.iso8601,
+      created_at: fixed_time,
+      updated_at: fixed_time,
       closed_at: nil
     }
     defaults.merge(overrides)

@@ -30,11 +30,11 @@ class User::DayTimeline
   end
 
   def added_column
-    @added_column ||= build_column("Added", 1, events.where(action: %w[card_published card_reopened beads_issue_published]))
+    @added_column ||= build_column("Added", 1, events.where(action: %w[card_published card_reopened beads_issue_published beads_issue_reopened]))
   end
 
   def updated_column
-    @updated_column ||= build_column("Updated", 2, events.where.not(action: %w[card_published card_closed card_reopened beads_issue_published beads_issue_closed beads_issue_updated]))
+    @updated_column ||= build_column("Updated", 2, events.where.not(action: %w[card_published card_closed card_reopened beads_issue_published beads_issue_closed beads_issue_reopened beads_issue_updated]))
   end
 
   def closed_column
@@ -61,6 +61,12 @@ class User::DayTimeline
       comment_created
       beads_issue_published
       beads_issue_closed
+      beads_issue_reopened
+      beads_issue_started
+      beads_issue_blocked
+      beads_issue_assigned
+      beads_issue_unassigned
+      beads_comment_created
     ]
 
     def filtered_events

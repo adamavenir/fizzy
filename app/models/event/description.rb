@@ -79,6 +79,18 @@ class Event::Description
         "#{creator} added #{card_title}"
       when "beads_issue_closed"
         %(#{creator} moved #{card_title} to "Done")
+      when "beads_issue_reopened"
+        "#{creator} reopened #{card_title}"
+      when "beads_issue_started"
+        "#{creator} started #{card_title}"
+      when "beads_issue_blocked"
+        "#{creator} marked #{card_title} as blocked"
+      when "beads_issue_assigned"
+        beads_assigned_sentence(creator, card_title)
+      when "beads_issue_unassigned"
+        beads_unassigned_sentence(creator, card_title)
+      when "beads_comment_created"
+        "#{creator} commented on #{card_title}"
       when "beads_issue_updated"
         "#{creator} updated #{card_title}"
       end
@@ -110,5 +122,32 @@ class Event::Description
     def triaged_sentence(creator, card_title)
       column = event.particulars.dig("particulars", "column")
       %(#{creator} moved #{card_title} to "#{h column}")
+    end
+
+    def beads_assigned_sentence(creator, card_title)
+      assignee = event.new_assignee
+      if assignee.present? && user_email_matches?(assignee)
+        "#{creator} will handle #{card_title}"
+      elsif assignee.present?
+        "#{creator} assigned #{h(assignee)} to #{card_title}"
+      else
+        "#{creator} assigned #{card_title}"
+      end
+    end
+
+    def beads_unassigned_sentence(creator, card_title)
+      assignee = event.old_assignee
+      if assignee.present? && user_email_matches?(assignee)
+        "#{creator} unassigned yourself from #{card_title}"
+      elsif assignee.present?
+        "#{creator} unassigned #{h(assignee)} from #{card_title}"
+      else
+        "#{creator} unassigned #{card_title}"
+      end
+    end
+
+    def user_email_matches?(email)
+      return false if email.blank?
+      user&.identity&.email_address == email
     end
 end
