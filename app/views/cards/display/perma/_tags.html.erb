@@ -1,6 +1,6 @@
 <div id="<%= dom_id(card, :tags) %>" class="card__tags">
   <div class="position-relative" data-controller="dialog"
-        data-action="keydown.esc->dialog#close click@document->dialog#closeOnClickOutside mouseenter->dialog#loadLazyFrames" <%= "hidden" if card.closed? %>>
+        data-action="keydown.esc->dialog#close click@document->dialog#closeOnClickOutside mouseenter->dialog#loadLazyFrames" <%= "hidden" if card.closed? || (card.is_a?(BeadsIssue) && card.drafted?) %>>
     <button class="tag-picker__button btn card__hide-on-index" style="--btn-background: var(--card-bg-color);"
         data-controller="tooltip hotkey" data-action="click->dialog#open:stop keydown.t@document->hotkey#click">
       <%= icon_tag "tag" %>

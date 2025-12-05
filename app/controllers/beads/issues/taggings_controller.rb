@@ -22,6 +22,12 @@ class Beads::Issues::TaggingsController < ApplicationController
   end
 
   def create
+    # Don't allow tag modifications for draft issues
+    if @issue.drafted?
+      head :unprocessable_entity
+      return
+    end
+
     client = @board.beads_client
     tag_title = sanitized_tag_title_param
 
@@ -76,9 +82,31 @@ class Beads::Issues::TaggingsController < ApplicationController
 
     def set_issue
       return unless @board&.beads_enabled?
-      data = @board.beads_client.show(params[:issue_issue_id])
-      @issue = BeadsIssue.new(data)
-      @issue.board = @board
+
+      issue_id = params[:issue_issue_id]
+
+      # Detect draft issues (they don't exist in beads yet)
+      if issue_id.start_with?("draft-")
+        # Create a minimal draft BeadsIssue for the tag picker
+        @issue = BeadsIssue.new(
+          id: issue_id,
+          title: "",
+          description: "",
+          status: "draft",
+          labels: [],
+          priority: 2,
+          issue_type: "task",
+          created_at: Time.current,
+          updated_at: Time.current
+        )
+        @issue.board = @board
+        @issue.instance_variable_set(:@creator, Current.user)
+      else
+        # Fetch existing issue from beads
+        data = @board.beads_client.show(issue_id)
+        @issue = BeadsIssue.new(data)
+        @issue.board = @board
+      end
     end
 
     def sanitized_tag_title_param
