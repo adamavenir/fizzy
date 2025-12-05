@@ -38,7 +38,12 @@ class User::DayTimeline
   end
 
   def closed_column
-    @closed_column ||= build_column("Done", 3, events.where(action: %w[card_closed beads_issue_closed]))
+    @closed_column ||= begin
+      closed_events = events.where(action: %w[card_closed beads_issue_closed])
+      # Filter out child beads issues when their parent was also closed in the same window
+      filtered_events = filter_child_closures(closed_events)
+      build_column("Done", 3, filtered_events)
+    end
   end
 
   def cache_key
@@ -74,6 +79,44 @@ class User::DayTimeline
         events = timelineable_events
         events = events.where(creator_id: filter.creators.ids) if filter.creators.present?
         events
+      end
+    end
+
+    # Filter out child issue closures when their parent was also closed in the same window
+    def filter_child_closures(closed_events)
+      # Only applies to beads issues
+      beads_closed = closed_events.where(action: "beads_issue_closed").to_a
+      return closed_events if beads_closed.empty?
+
+      # Get all closed issue IDs in this window
+      closed_issue_ids = beads_closed.map(&:beads_issue_id).compact
+      return closed_events if closed_issue_ids.empty?
+
+      # For each beads issue, check if it's a child and if parent was also closed
+      child_event_ids = []
+
+      beads_closed.each do |event|
+        next unless event.beads_issue_id
+
+        begin
+          # Fetch the issue to check parent-child relationship
+          issue = event.card
+          next unless issue && issue.respond_to?(:is_child?)
+
+          # If this is a child and its parent was also closed in this window, filter it out
+          if issue.is_child? && issue.parent_issue_id && closed_issue_ids.include?(issue.parent_issue_id)
+            child_event_ids << event.id
+          end
+        rescue => e
+          Rails.logger.warn("DayTimeline: Failed to check parent-child for #{event.beads_issue_id}: #{e.message}")
+        end
+      end
+
+      # Filter out the child events
+      if child_event_ids.any?
+        closed_events.where.not(id: child_event_ids)
+      else
+        closed_events
       end
     end
 
