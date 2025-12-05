@@ -319,13 +319,16 @@ class BeadsIssue
     nil
   end
 
+  def creator_email
+    creator_label = labels&.find { |l| l.start_with?("creator:") }
+    creator_label&.sub("creator:", "")
+  end
+
   def creator
     return @creator if @creator
 
     # First, try to find creator from the creator: label
-    creator_label = labels&.find { |l| l.start_with?("creator:") }
-    if creator_label && board.respond_to?(:account) && board.account
-      creator_email = creator_label.sub("creator:", "")
+    if creator_email && board.respond_to?(:account) && board.account
       identity = Identity.find_by(email_address: creator_email)
       if identity
         @creator = identity.users.find_by(account: board.account)
