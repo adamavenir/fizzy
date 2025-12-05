@@ -50,7 +50,8 @@ class BeadsBridge
       when "update"
         # For updates, remove and re-add to handle potential status changes
         broadcast_card_moved(issue_id)
-        create_event_for_update(issue_id, mutation)
+        # Note: We don't create events for generic updates since they clutter the timeline
+        # In the future, we could detect specific meaningful changes (comments, status changes)
       when "close", "delete"
         broadcast_card_removed(issue_id)
         create_event_for_closure(issue_id) if mutation["Type"] == "close"

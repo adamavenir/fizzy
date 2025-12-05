@@ -34,7 +34,7 @@ class User::DayTimeline
   end
 
   def updated_column
-    @updated_column ||= build_column("Updated", 2, events.where.not(action: %w[card_published card_closed card_reopened beads_issue_published beads_issue_closed]))
+    @updated_column ||= build_column("Updated", 2, events.where.not(action: %w[card_published card_closed card_reopened beads_issue_published beads_issue_closed beads_issue_updated]))
   end
 
   def closed_column
@@ -61,7 +61,6 @@ class User::DayTimeline
       comment_created
       beads_issue_published
       beads_issue_closed
-      beads_issue_updated
     ]
 
     def filtered_events
