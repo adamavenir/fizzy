@@ -45,16 +45,15 @@ class BeadsBridge
 
       case mutation["Type"]
       when "create"
-        broadcast_card_created(issue_id)
-        create_event_for_creation(issue_id)
+        issue = fetch_issue(issue_id)
+        return unless issue
+        handle_create(issue)
       when "update"
-        # For updates, remove and re-add to handle potential status changes
-        broadcast_card_moved(issue_id)
-        # Note: We don't create events for generic updates since they clutter the timeline
-        # In the future, we could detect specific meaningful changes (comments, status changes)
+        issue = fetch_issue(issue_id)
+        return unless issue
+        handle_update(issue)
       when "close", "delete"
-        broadcast_card_removed(issue_id)
-        create_event_for_closure(issue_id) if mutation["Type"] == "close"
+        handle_delete(issue_id)
       end
     end
 
@@ -131,6 +130,100 @@ class BeadsBridge
 
       board.update_column(:last_mutation_timestamp, timestamp_ms)
       Rails.logger.info("BeadsBridge: Updated timestamp to #{timestamp_ms} (#{timestamp})")
+    end
+
+    # Mutation handlers
+    def handle_create(issue)
+      issue_data = serialize_issue(issue)
+
+      # Store initial state in cache (use find_or_create for idempotency)
+      state = BeadsIssueState.find_or_initialize_by(
+        board_id: board.id,
+        issue_id: issue.id
+      )
+
+      state.snapshot = issue_data.to_json
+      state.synced_at = Time.current
+      state.save!
+
+      # Log the creation
+      Rails.logger.info("BeadsBridge: Created state cache for #{issue.id}")
+
+      # Create published event
+      create_event_for_creation(issue.id)
+
+      # Broadcast to UI
+      broadcast_card_created(issue.id)
+    end
+
+    def handle_update(issue)
+      # Load previous state from cache
+      state = BeadsIssueState.find_by(board_id: board.id, issue_id: issue.id)
+
+      # No previous state: treat as first-time create (backfill)
+      if state.nil?
+        Rails.logger.info("BeadsBridge: No cached state for #{issue.id}, treating as create")
+        return handle_create(issue)
+      end
+
+      # Compare states
+      previous_snapshot = state.parsed_snapshot
+      current_snapshot = serialize_issue(issue)
+
+      detector = Beads::ChangeDetector.new(
+        old_state: previous_snapshot,
+        new_state: current_snapshot,
+        issue: issue
+      )
+
+      changes = detector.detect_changes
+
+      # Log detected changes
+      changes.each do |change|
+        Rails.logger.info("BeadsBridge: Detected change for #{issue.id}: #{change.class.name} - #{change.event_action}")
+      end
+
+      # Update cached state
+      state.update_snapshot!(current_snapshot)
+
+      # Broadcast UI updates (handles column moves)
+      broadcast_card_moved(issue.id) if changes.any?
+    end
+
+    def handle_delete(issue_id)
+      # Remove from state cache
+      deleted_count = BeadsIssueState.where(board_id: board.id, issue_id: issue_id).destroy_all.size
+      Rails.logger.info("BeadsBridge: Deleted #{deleted_count} state cache entries for #{issue_id}")
+
+      # Broadcast removal
+      broadcast_card_removed(issue_id)
+
+      # Note: Don't delete events (preserve history)
+    end
+
+    def serialize_issue(beads_issue)
+      # BeadsIssue doesn't have .attributes like ActiveRecord
+      # Extract relevant fields manually
+      {
+        id: beads_issue.id,
+        title: beads_issue.title,
+        description: beads_issue.description,
+        status: beads_issue.status,
+        priority: beads_issue.priority,
+        issue_type: beads_issue.issue_type,
+        assignee: beads_issue.assignee,
+        labels: beads_issue.labels,
+        comments: beads_issue.comments.map do |comment|
+          {
+            author: comment.author,
+            body: comment.body,
+            created_at: comment.created_at&.iso8601
+          }
+        end,
+        created_at: beads_issue.created_at&.iso8601,
+        updated_at: beads_issue.updated_at&.iso8601,
+        closed_at: beads_issue.closed_at&.iso8601
+      }
     end
 
     # Event creation methods
