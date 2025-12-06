@@ -78,7 +78,8 @@ class Filter < ApplicationRecord
     def beads_cards
       # Separate tags into categories for beads API
       # Priority tags (p0-p4) map to beads priority field, not labels
-      # Type tags (bug, feature, epic, chore) map to beads issue_type field
+      # Type tags (bug, epic, chore, task) can match EITHER issue_type field OR labels
+      # This handles cases where users use labels instead of issue_type
       tag_titles = tags.map(&:title)
 
       priority_tags = tag_titles.select { |t| t.match?(/^p[0-4]$/) }
@@ -91,7 +92,8 @@ class Filter < ApplicationRecord
       filter_params = {}
       filter_params[:labels] = label_filters if label_filters.present?
       filter_params[:priority] = priority_tags.first.sub("p", "").to_i if priority_tags.one?
-      filter_params[:issue_type] = type_tags.first if type_tags.one?
+      # For type tags, we can't use API filtering because we need OR logic (issue_type OR label)
+      # Will post-filter instead
 
       # Status filter (indexed_by maps to beads status)
       filter_params[:status] = beads_status_for_indexed_by
@@ -125,13 +127,19 @@ class Filter < ApplicationRecord
         end
       end
 
-      # Post-filter for multiple priorities or types (beads API only supports single values)
+      # Post-filter for multiple priorities (beads API only supports single values)
       if priority_tags.many?
         priorities = priority_tags.map { |t| t.sub("p", "").to_i }
         all_issues = all_issues.select { |i| priorities.include?(i.priority) }
       end
-      if type_tags.many?
-        all_issues = all_issues.select { |i| type_tags.include?(i.issue_type) }
+
+      # Post-filter for type tags - match EITHER issue_type OR labels
+      # This allows filtering by "bug" to find issues with issue_type="bug" OR label="bug"
+      if type_tags.present?
+        all_issues = all_issues.select do |i|
+          # Match if issue_type matches any type tag OR if labels include any type tag
+          type_tags.include?(i.issue_type) || (i.labels & type_tags).any?
+        end
       end
 
       # Post-filter for multiple assignees (beads API only supports single value)
@@ -163,6 +171,9 @@ class Filter < ApplicationRecord
 
       # Post-filter for indexed_by special cases
       case indexed_by.to_s
+      when "all"
+        # "All" means "Open" - include open, in_progress, blocked (exclude closed)
+        all_issues = all_issues.reject { |i| i.status == "closed" }
       when "not_now"
         # Filter for issues with fizzy:not-now label
         all_issues = all_issues.select { |i| i.labels&.include?("fizzy:not-now") }
@@ -188,7 +199,7 @@ class Filter < ApplicationRecord
       when "closed"
         "closed"
       when "all"
-        "open"  # Default to open status (includes in_progress, blocked)
+        nil  # Will post-filter for open statuses (open, in_progress, blocked)
       when "not_now"
         nil  # Will post-filter for fizzy:not-now label
       when "golden"
