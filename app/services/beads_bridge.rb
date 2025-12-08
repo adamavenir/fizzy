@@ -210,63 +210,71 @@ class BeadsBridge
 
     def handle_update(issue)
       # Change detection flow:
-      # 1. Load previous state from cache (BeadsIssueState)
+      # 1. Load previous state from cache (BeadsIssueState) with lock
       # 2. Compare to current issue data (ChangeDetector)
       # 3. Get semantic changes (StatusChange, CommentAddition, etc.)
-      # 4. Create events for each change
-      # 5. Update cache with new state for next comparison
+      # 4. Update cache FIRST (prevents duplicate processing)
+      # 5. Create events for each change
+      #
+      # Note: We use pessimistic locking to prevent race conditions where
+      # multiple mutations for the same issue are processed simultaneously,
+      # which would cause duplicate events.
 
-      # Load previous state from cache
-      state = BeadsIssueState.find_by(board_id: board.id, issue_id: issue.id)
+      # Use transaction with lock to prevent race conditions
+      BeadsIssueState.transaction do
+        # Load previous state from cache with lock
+        state = BeadsIssueState.lock.find_by(board_id: board.id, issue_id: issue.id)
 
-      # No previous state: treat as first-time create (backfill)
-      if state.nil?
-        Rails.logger.info("BeadsBridge: No cached state for #{issue.id}, treating as create")
-        return handle_create(issue)
-      end
+        # No previous state: treat as first-time create (backfill)
+        if state.nil?
+          Rails.logger.info("BeadsBridge: No cached state for #{issue.id}, treating as create")
+          return handle_create(issue)
+        end
 
-      # Compare states
-      begin
-        previous_snapshot = state.parsed_snapshot
+        # Compare states
+        begin
+          previous_snapshot = state.parsed_snapshot
 
-        # If snapshot is empty (due to parsing error), rebuild
-        if previous_snapshot.empty?
-          Rails.logger.error("BeadsBridge: Empty/corrupted cache for #{issue.id}, rebuilding")
+          # If snapshot is empty (due to parsing error), rebuild
+          if previous_snapshot.empty?
+            Rails.logger.error("BeadsBridge: Empty/corrupted cache for #{issue.id}, rebuilding")
+            state.destroy
+            return handle_create(issue)
+          end
+        rescue JSON::ParserError => e
+          Rails.logger.error("BeadsBridge: Corrupted cache for #{issue.id}, rebuilding: #{e.message}")
+          # Delete corrupted cache and rebuild
           state.destroy
           return handle_create(issue)
         end
-      rescue JSON::ParserError => e
-        Rails.logger.error("BeadsBridge: Corrupted cache for #{issue.id}, rebuilding: #{e.message}")
-        # Delete corrupted cache and rebuild
-        state.destroy
-        return handle_create(issue)
+
+        current_snapshot = serialize_issue(issue)
+
+        detector = Beads::ChangeDetector.new(
+          old_state: previous_snapshot,
+          new_state: current_snapshot,
+          issue: issue
+        )
+
+        changes = detector.detect_changes
+
+        # Update cached state FIRST (before creating events)
+        # This prevents duplicate event creation if the same mutation is processed multiple times
+        begin
+          state.update_snapshot!(current_snapshot)
+        rescue ActiveRecord::RecordInvalid => e
+          Rails.logger.error("BeadsBridge: Failed to update cache for #{issue.id}: #{e.message}")
+          # Continue - cache will be stale but not fatal
+        end
+
+        # Create events for each detected change
+        changes.each do |change|
+          create_event_for_change(issue, change)
+        end
+
+        # Broadcast UI updates (handles column moves)
+        broadcast_card_moved(issue.id) if changes.any?
       end
-
-      current_snapshot = serialize_issue(issue)
-
-      detector = Beads::ChangeDetector.new(
-        old_state: previous_snapshot,
-        new_state: current_snapshot,
-        issue: issue
-      )
-
-      changes = detector.detect_changes
-
-      # Create events for each detected change
-      changes.each do |change|
-        create_event_for_change(issue, change)
-      end
-
-      # Update cached state
-      begin
-        state.update_snapshot!(current_snapshot)
-      rescue ActiveRecord::RecordInvalid => e
-        Rails.logger.error("BeadsBridge: Failed to update cache for #{issue.id}: #{e.message}")
-        # Continue - cache will be stale but not fatal
-      end
-
-      # Broadcast UI updates (handles column moves)
-      broadcast_card_moved(issue.id) if changes.any?
     end
 
     def handle_delete(issue_id)

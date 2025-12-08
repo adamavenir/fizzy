@@ -1,6 +1,6 @@
 class User < ApplicationRecord
   include Accessor, Assignee, Attachable, Configurable, EmailAddressChangeable,
-    Mentionable, Named, Notifiable, Role, Searcher, Watcher
+    Mentionable, Named, Notifiable, Role, Searcher, BeadsSearcher, Watcher
   include Timelined # Depends on Accessor
 
   has_one_attached :avatar do |attachable|

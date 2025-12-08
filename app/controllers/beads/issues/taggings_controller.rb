@@ -64,6 +64,8 @@ class Beads::Issues::TaggingsController < ApplicationController
       if @issue.labels.include?(tag_title)
         client.remove_label(@issue.id, tag_title)
       else
+        # Ensure tag exists in Fizzy for autocomplete
+        Current.account.tags.find_or_create_by!(title: tag_title)
         client.add_label(@issue.id, tag_title)
       end
     end

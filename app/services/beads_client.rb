@@ -35,6 +35,11 @@ class BeadsClient
     rpc("list", args) || []
   end
 
+  def search(query:, status: nil, labels: nil, labels_any: nil, limit: nil, assignee: nil, priority: nil, issue_type: nil)
+    args = { query:, status:, labels:, labels_any:, limit:, assignee:, priority:, issue_type: }.compact
+    rpc("list", args) || []
+  end
+
   def show(id)
     rpc("show", { id: })
   end

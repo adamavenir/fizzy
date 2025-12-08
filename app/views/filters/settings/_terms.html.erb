@@ -5,7 +5,7 @@
             filter_settings_target: "field",
             action: "keydown.f@document->hotkey#focus input->filter-settings#resetIfNoFiltering input->form#debouncedSubmit keydown.enter->form#submitToTopTarget blur->form#submitToTopTarget" } %>
 
-<% if filter.terms.present? %>
+<% if filter.terms.present? && filter.persisted? %>
   <% filter.terms.each do |term| %>
     <%= filter_chip_tag %Q("#{term}"), filter.as_params_without(:terms, term) %>
     <%= hidden_field_tag "terms[]", term, data: { filter_settings_target: "field" } %>

@@ -115,7 +115,16 @@ class Filter < ApplicationRecord
         next [] unless client
 
         begin
-          issues = filter_params.compact.present? ? client.list(**filter_params.compact) : client.list
+          # If terms are present, use search; otherwise use list
+          if terms.present?
+            # Search with each term (beads search uses OR logic across terms)
+            # Combine all terms into a single query for beads
+            query = terms.join(" ")
+            issues = client.search(query: query, **filter_params.compact)
+          else
+            issues = filter_params.compact.present? ? client.list(**filter_params.compact) : client.list
+          end
+
           issues.map do |data|
             issue = BeadsIssue.new(data)
             issue.board = board

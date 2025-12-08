@@ -72,7 +72,9 @@ class BoardsController < ApplicationController
       @filter.board_ids = [ @board.id ]
       cards = @filter.cards
       if cards.is_a?(Array)
-        @page = OpenStruct.new(records: cards, used?: cards.any?)
+        # Wrap array in relation-like object for geared_pagination
+        array_relation = ArrayRelation.new(cards)
+        set_page_and_extract_portion_from array_relation
       else
         set_page_and_extract_portion_from cards
       end
