@@ -1,2 +1,2 @@
-<%# Replace entire card container to update color, classes, and tags %>
-<%= turbo_stream.replace([@card, :card_container], partial: "cards/container", method: :morph, locals: { card: @card }) %>
+<%# Replace just the tags section to update immediately %>
+<%= turbo_stream.replace([@card, :tags], partial: "cards/display/perma/tags", method: :morph, locals: { card: @card }) %>

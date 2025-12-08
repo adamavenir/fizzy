@@ -96,8 +96,34 @@ class BeadsBridge
         partial: "cards/display/beads_preview",
         locals: { card: issue, draggable: true }
       )
+
+      # Also update the detail view if someone has it open
+      broadcast_detail_view_updated(issue)
     rescue StandardError => e
       Rails.logger.error("BeadsBridge: Failed to broadcast card updated for #{issue_id}: #{e.message}")
+      # Continue - broadcast failure is not critical
+    end
+
+    def broadcast_detail_view_updated(issue)
+      # Replace the card container section in the detail view
+      Turbo::StreamsChannel.broadcast_replace_to(
+        board,
+        target: ActionView::RecordIdentifier.dom_id(issue, :card_container),
+        partial: "beads/issues/container",
+        locals: { card: issue }
+      )
+
+      # Replace the related cards section if it exists
+      if issue.has_related_cards?
+        Turbo::StreamsChannel.broadcast_replace_to(
+          board,
+          target: "related_cards_#{issue.id.tr('-', '_')}",
+          partial: "beads/issues/related_cards",
+          locals: { issue: issue }
+        )
+      end
+    rescue StandardError => e
+      Rails.logger.error("BeadsBridge: Failed to broadcast detail view update for #{issue.id}: #{e.message}")
       # Continue - broadcast failure is not critical
     end
 
@@ -272,8 +298,11 @@ class BeadsBridge
           create_event_for_change(issue, change)
         end
 
-        # Broadcast UI updates (handles column moves)
-        broadcast_card_moved(issue.id) if changes.any?
+        # Broadcast UI updates
+        if changes.any?
+          broadcast_card_moved(issue.id)
+          broadcast_detail_view_updated(issue)
+        end
       end
     end
 

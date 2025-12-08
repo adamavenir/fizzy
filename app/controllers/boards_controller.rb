@@ -120,7 +120,7 @@ class BoardsController < ApplicationController
             issue = BeadsIssue.new(data)
             issue.board = @board
             issue
-          end.sort_by { |i| [i.priority || 2, i.created_at || Time.at(0)] }
+          end.sort_by { |i| i.closed_at || Time.at(0) }.reverse
         rescue BeadsClient::Error => e
           @beads_error = e.message
           flash.now[:alert] = e.message
@@ -134,7 +134,7 @@ class BoardsController < ApplicationController
     end
 
     def board_params
-      params.expect(board: [ :name, :all_access, :auto_postpone_period, :public_description, :repo_path ])
+      params.expect(board: [ :name, :all_access, :auto_postpone_period, :public_description, :repo_path, :hide_child_cards ])
     end
 
     def grantees

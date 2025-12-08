@@ -82,6 +82,10 @@ class BeadsCardQuery
     end
 
     def needs_parent_child_filtering?(column)
+      # Only filter if board setting is enabled
+      board = column.respond_to?(:board) ? column.board : @board
+      return false unless board&.hide_child_cards
+
       # Hide children in: Open, Not Now
       column.beads_value == "open" || column.beads_value == "fizzy:not-now"
     end

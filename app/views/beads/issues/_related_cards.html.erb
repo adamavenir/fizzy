@@ -1,4 +1,4 @@
-<section class="related-cards gap center">
+<section id="related_cards_<%= issue.id.tr('-', '_') %>" class="related-cards gap center">
   <h2 class="related-cards__title">Related Cards</h2>
 
   <% if issue.parent_cards.any? %>

@@ -1,0 +1,26 @@
+<% if board.beads_enabled? %>
+  <header>
+    <h2 class="divider txt-medium margin-block-start">Options</h2>
+  </header>
+
+  <menu class="menu unpad margin-none">
+    <li class="flex align-center gap-half">
+      <div class="min-width">
+        <div class="overflow-ellipsis">Show child cards</div>
+      </div>
+
+      <hr class="separator--horizontal flex-item-grow" style="--border-color: var(--color-ink-medium); --border-style: dashed" aria-hidden="true" />
+
+      <label class="switch">
+        <%= form.check_box :hide_child_cards,
+              { checked: !board.hide_child_cards,
+                disabled: !Current.user.can_administer_board?(board),
+                class: "switch__input",
+                data: { action: "change->form#submit" } },
+              false, true %>
+        <span class="switch__btn round"></span>
+        <span class="for-screen-reader">Toggle show child cards</span>
+      </label>
+    </li>
+  </menu>
+<% end %>

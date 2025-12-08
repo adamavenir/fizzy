@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2025_12_05_074917) do
+ActiveRecord::Schema[8.2].define(version: 2025_12_08_130457) do
   create_table "accesses", id: :uuid, force: :cascade do |t|
     t.datetime "accessed_at"
     t.uuid "account_id", null: false
@@ -158,6 +158,7 @@ ActiveRecord::Schema[8.2].define(version: 2025_12_05_074917) do
     t.boolean "all_access", default: false, null: false
     t.datetime "created_at", null: false
     t.uuid "creator_id", null: false
+    t.boolean "hide_child_cards", default: true, null: false
     t.integer "last_mutation_timestamp", limit: 8, default: 0, null: false
     t.string "name", limit: 255, null: false
     t.string "repo_path", limit: 255
