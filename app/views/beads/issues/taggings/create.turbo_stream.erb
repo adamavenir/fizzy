@@ -1,2 +1,10 @@
-<%# Replace just the tags section to update immediately %>
-<%= turbo_stream.replace([@card, :tags], partial: "cards/display/perma/tags", method: :morph, locals: { card: @card }) %>
+<%# Update tags in detail view %>
+<%= turbo_stream.replace([@card, :tags], partial: "cards/display/perma/tags", method: "morph", locals: { card: @card }) %>
+
+<%# Broadcast to update only tags in board preview %>
+<% Turbo::StreamsChannel.broadcast_replace_to(
+  @board,
+  target: ActionView::RecordIdentifier.dom_id(@issue, :preview_tags),
+  partial: "cards/display/preview/beads_tags",
+  locals: { card: @issue }
+) rescue nil %>

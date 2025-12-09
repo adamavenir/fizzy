@@ -3,7 +3,28 @@ require "test_helper"
 class Beads::Issues::TaggingsControllerTest < ActionDispatch::IntegrationTest
   setup do
     sign_in_as :kevin
-    @board = boards(:beads_board)
+    @account = accounts("37s")
+    @creator = users("kevin")
+
+    # Create a temporary test directory for beads repo
+    @test_repo_path = "/tmp/test-beads-taggings-#{SecureRandom.hex(8)}"
+    FileUtils.mkdir_p(@test_repo_path)
+    FileUtils.mkdir_p("#{@test_repo_path}/.beads")
+
+    # Initialize git repo (required by beads daemon)
+    Dir.chdir(@test_repo_path) do
+      system("git init --quiet")
+      system("git config user.name 'Test User'")
+      system("git config user.email 'test@example.com'")
+    end
+
+    @board = Board.create!(
+      account: @account,
+      creator: @creator,
+      name: "Test Tagging Board",
+      repo_path: @test_repo_path
+    )
+
     @client = @board.beads_client
 
     # Create a test issue in beads
@@ -18,6 +39,8 @@ class Beads::Issues::TaggingsControllerTest < ActionDispatch::IntegrationTest
   teardown do
     # Clean up test issue
     @client.close(@issue_id) if @issue_id
+    # Clean up test directory
+    FileUtils.rm_rf(@test_repo_path) if @test_repo_path && Dir.exist?(@test_repo_path)
   end
 
   test "creating new tag adds it to beads and fizzy" do
