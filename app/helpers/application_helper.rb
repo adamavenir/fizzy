@@ -24,6 +24,52 @@ module ApplicationHelper
     markdown.render(text).html_safe
   end
 
+  def render_beads_markdown(text, board:)
+    return "" if text.blank?
+
+    processed = auto_link_card_references(text, board)
+    render_markdown(processed)
+  end
+
+  private
+
+  def auto_link_card_references(text, board)
+    prefix = board&.beads_prefix
+    return text unless prefix.present?
+
+    # Replace card references with links
+    # Pattern matches #prefix-hash or #hash (but not if already in markdown link)
+    text.gsub(/#([\w-]+)-([\w]+)\b|#([\w]+)\b/) do
+      match_data = Regexp.last_match
+      matched_text = match_data[0]
+
+      # Skip if already inside a markdown link
+      before_text = match_data.pre_match
+      next matched_text if before_text =~ /\]\([^\)]*$/
+
+      if match_data[1] && match_data[2]
+        # Full ID: #prefix-hash
+        matched_prefix = match_data[1]
+        hash = match_data[2]
+
+        target_board = Board.find_by(beads_prefix: matched_prefix)
+        if target_board
+          url = beads_short_link_path(matched_prefix, hash)
+          "[##{hash}](#{url})"
+        else
+          matched_text
+        end
+      elsif match_data[3]
+        # Short ID: #hash (use current board's prefix)
+        hash = match_data[3]
+        url = beads_short_link_path(prefix, hash)
+        "[##{hash}](#{url})"
+      else
+        matched_text
+      end
+    end
+  end
+
   def icon_tag(name, **options)
     tag.span class: class_names("icon icon--#{name}", options.delete(:class)), "aria-hidden": true, **options
   end

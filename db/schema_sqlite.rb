@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2025_12_08_130457) do
+ActiveRecord::Schema[8.2].define(version: 2025_12_09_050053) do
   create_table "accesses", id: :uuid, force: :cascade do |t|
     t.datetime "accessed_at"
     t.uuid "account_id", null: false
@@ -156,6 +156,7 @@ ActiveRecord::Schema[8.2].define(version: 2025_12_08_130457) do
   create_table "boards", id: :uuid, force: :cascade do |t|
     t.uuid "account_id", null: false
     t.boolean "all_access", default: false, null: false
+    t.string "beads_prefix"
     t.datetime "created_at", null: false
     t.uuid "creator_id", null: false
     t.boolean "hide_child_cards", default: true, null: false
@@ -164,6 +165,7 @@ ActiveRecord::Schema[8.2].define(version: 2025_12_08_130457) do
     t.string "repo_path", limit: 255
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_boards_on_account_id"
+    t.index ["beads_prefix"], name: "index_boards_on_beads_prefix"
     t.index ["creator_id"], name: "index_boards_on_creator_id"
   end
 

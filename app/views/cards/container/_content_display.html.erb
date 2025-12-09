@@ -9,7 +9,7 @@
 <% unless card.description.blank? %>
   <div class="card__description rich-text-content" data-controller="syntax-highlight retarget-links">
     <% if card.is_a?(BeadsIssue) %>
-      <%= render_markdown(card.description_without_cover) %>
+      <%= render_beads_markdown(card.description_without_cover, board: card.board) %>
     <% else %>
       <%= card.description %>
     <% end %>

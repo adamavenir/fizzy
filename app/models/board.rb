@@ -16,6 +16,7 @@ class Board < ApplicationRecord
   validate :repo_has_beads_directory, if: -> { repo_path.present? }
   before_validation :normalize_repo_path, if: -> { repo_path.present? }
   after_create :initialize_beads_timestamp, if: -> { beads_enabled? }
+  after_create :ensure_beads_prefix, if: -> { beads_enabled? }
 
   def beads_client
     return nil unless repo_path.present?
@@ -41,6 +42,14 @@ class Board < ApplicationRecord
       { name: "In Progress", position: 1, column_type: :beads_status, beads_value: "in_progress", color: colors[3] },  # Yellow
       { name: "Blocked",     position: 2, column_type: :beads_status, beads_value: "blocked",     color: colors[8] }   # Pink
     ].each { |attrs| columns.create!(attrs) }
+  end
+
+  def ensure_beads_prefix
+    return beads_prefix if beads_prefix.present?
+
+    prefix = fetch_beads_prefix
+    update_column(:beads_prefix, prefix) if prefix
+    prefix
   end
 
   private
@@ -81,5 +90,15 @@ class Board < ApplicationRecord
       # Start from current time to skip historical mutations
       current_ms = (Time.now.to_f * 1000).to_i
       update_column(:last_mutation_timestamp, current_ms)
+    end
+
+    def fetch_beads_prefix
+      return nil unless repo_path.present?
+
+      db_path = File.join(repo_path, ".beads", "beads.db")
+      return nil unless File.exist?(db_path)
+
+      result = `sqlite3 "#{db_path}" "SELECT value FROM config WHERE key='issue_prefix' LIMIT 1" 2>/dev/null`.strip
+      result.presence
     end
 end

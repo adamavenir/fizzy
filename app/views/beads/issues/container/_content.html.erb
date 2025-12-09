@@ -4,6 +4,6 @@
 
 <% if card.description.present? %>
   <div class="card__description rich-text-content push-top">
-    <%= render_markdown(card.description) %>
+    <%= render_beads_markdown(card.description, board: card.board) %>
   </div>
 <% end %>

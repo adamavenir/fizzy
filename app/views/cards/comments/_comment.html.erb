@@ -40,7 +40,7 @@
 
         <div class="comment__body rich-text-content" data-controller="syntax-highlight retarget-links" data-turbo-permanent>
           <% if comment.is_a?(BeadsComment) %>
-            <%= render_markdown(comment.body) %>
+            <%= render_beads_markdown(comment.body, board: comment.board) %>
           <% else %>
             <%= comment.body %>
           <% end %>

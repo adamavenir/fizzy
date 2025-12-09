@@ -235,6 +235,10 @@ Rails.application.routes.draw do
     route_for :issue, issue.board, issue, options
   end
 
+  # Short URL redirects for beads cards
+  get "/bd/:prefix/:hash", to: "beads/shortcuts#show", as: :beads_short_link, constraints: { hash: /[a-z0-9]+/i }
+  get "/bd/:prefix", to: "beads/shortcuts#board", as: :beads_board_link
+
   # Beads integration routes
   scope :beads do
     # Serve images from .beads/images/
