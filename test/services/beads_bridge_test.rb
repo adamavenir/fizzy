@@ -245,23 +245,29 @@ class BeadsBridgeTest < ActiveSupport::TestCase
   # ====================
 
   test "creates comment event when new comment detected" do
-    skip "Test infrastructure issue - see fizzy-0oi. BeadsIssue.new doesn't parse comments from hash. Unskip when investigating."
-
-    old_comments = [
+    # Old state in cache uses 'body' key (as produced by serialize_issue)
+    old_comments_cache = [
       { author: "alice@example.com", body: "First comment", created_at: "2025-12-04T10:00:00Z" }
     ]
-    new_comments = old_comments + [
-      { author: "bob@example.com", body: "Second comment", created_at: "2025-12-04T11:00:00Z" }
+
+    # list_comments returns hashes with 'text' key (beads RPC format)
+    old_comments_rpc = [
+      { author: "alice@example.com", text: "First comment", created_at: "2025-12-04T10:00:00Z" }
+    ]
+    new_comments_rpc = old_comments_rpc + [
+      { author: "bob@example.com", text: "Second comment", created_at: "2025-12-04T11:00:00Z" }
     ]
 
     create_cached_state(
       issue_id: "fizzy-test",
-      state: { status: "open", title: "Task", comments: old_comments }
+      state: { status: "open", title: "Task", comments: old_comments_cache }
     )
 
-    issue_data = mock_issue_data("fizzy-test", comments: new_comments)
+    # Mock list_comments to return RPC format (with 'text' field)
+    @mock_client.stubs(:list_comments).with("fizzy-test").returns(new_comments_rpc)
+
+    issue_data = mock_issue_data("fizzy-test")
     @mock_client.stubs(:show).with("fizzy-test").returns(issue_data)
-    @mock_client.stubs(:list_comments).with("fizzy-test").returns(new_comments)
 
     mutation = update_mutation("fizzy-test")
 
@@ -275,24 +281,30 @@ class BeadsBridgeTest < ActiveSupport::TestCase
   end
 
   test "creates multiple comment events when multiple comments added" do
-    skip "Test infrastructure issue - see fizzy-0oi. BeadsIssue.new doesn't parse comments from hash. Unskip when investigating."
-
-    old_comments = [
+    # Old state in cache uses 'body' key (as produced by serialize_issue)
+    old_comments_cache = [
       { author: "alice@example.com", body: "First", created_at: "2025-12-04T10:00:00Z" }
     ]
-    new_comments = old_comments + [
-      { author: "bob@example.com", body: "Second", created_at: "2025-12-04T11:00:00Z" },
-      { author: "charlie@example.com", body: "Third", created_at: "2025-12-04T12:00:00Z" }
+
+    # list_comments returns hashes with 'text' key (beads RPC format)
+    old_comments_rpc = [
+      { author: "alice@example.com", text: "First", created_at: "2025-12-04T10:00:00Z" }
+    ]
+    new_comments_rpc = old_comments_rpc + [
+      { author: "bob@example.com", text: "Second", created_at: "2025-12-04T11:00:00Z" },
+      { author: "charlie@example.com", text: "Third", created_at: "2025-12-04T12:00:00Z" }
     ]
 
     create_cached_state(
       issue_id: "fizzy-test",
-      state: { status: "open", title: "Task", comments: old_comments }
+      state: { status: "open", title: "Task", comments: old_comments_cache }
     )
 
-    issue_data = mock_issue_data("fizzy-test", comments: new_comments)
+    # Mock list_comments to return RPC format (with 'text' field)
+    @mock_client.stubs(:list_comments).with("fizzy-test").returns(new_comments_rpc)
+
+    issue_data = mock_issue_data("fizzy-test")
     @mock_client.stubs(:show).with("fizzy-test").returns(issue_data)
-    @mock_client.stubs(:list_comments).with("fizzy-test").returns(new_comments)
 
     mutation = update_mutation("fizzy-test")
 
@@ -347,19 +359,21 @@ class BeadsBridgeTest < ActiveSupport::TestCase
       }
     )
 
-    new_comments = [
-      { author: "bob@example.com", body: "Starting work", created_at: "2025-12-04T11:00:00Z" }
+    # list_comments returns hashes with 'text' key (beads RPC format)
+    new_comments_rpc = [
+      { author: "bob@example.com", text: "Starting work", created_at: "2025-12-04T11:00:00Z" }
     ]
+
+    # Mock list_comments to return RPC format (with 'text' field)
+    @mock_client.stubs(:list_comments).with("fizzy-test").returns(new_comments_rpc)
 
     issue_data = mock_issue_data(
       "fizzy-test",
       status: "in_progress",
       assignee: "bob@example.com",
-      title: "Task",
-      comments: new_comments
+      title: "Task"
     )
     @mock_client.stubs(:show).with("fizzy-test").returns(issue_data)
-    @mock_client.stubs(:list_comments).with("fizzy-test").returns(new_comments)
 
     mutation = update_mutation("fizzy-test")
 
@@ -434,11 +448,14 @@ class BeadsBridgeTest < ActiveSupport::TestCase
   end
 
   test "delete mutation preserves existing events" do
-    skip "Test infrastructure issue - see fizzy-0oi. Mock expectation mismatch when Event loads eventable. Unskip when investigating."
-
     create_cached_state(
       issue_id: "fizzy-test",
-      state: { status: "closed", title: "Old issue" }
+      state: { status: "closed", title: "Old issue", comments: [] }
+    )
+
+    # Mock show in case anything tries to load the issue
+    @mock_client.stubs(:show).with("fizzy-test").returns(
+      mock_issue_data("fizzy-test", status: "closed", title: "Old issue")
     )
 
     # Create an event for this issue
@@ -457,15 +474,13 @@ class BeadsBridgeTest < ActiveSupport::TestCase
       "Timestamp" => Time.current.iso8601
     }
 
-    # Stub show in case Event tries to load the eventable
-    # Use mock_issue_data to return a valid issue (though it's deleted)
-    @mock_client.stubs(:show).with("fizzy-test").returns(
-      mock_issue_data("fizzy-test", status: "closed", title: "Old issue")
-    )
-
-    assert_no_difference "Event.where(beads_issue_id: 'fizzy-test').count" do
+    # Process the delete mutation - should not delete events
+    assert_no_difference "Event.count" do
       @bridge.send(:process_mutation, mutation)
     end
+
+    # Verify the cache was deleted
+    assert_nil BeadsIssueState.find_by(board: @board, issue_id: "fizzy-test")
   end
 
   # ====================

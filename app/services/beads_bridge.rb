@@ -347,12 +347,30 @@ class BeadsBridge
       # Deduplication: Check if an identical event exists within the last 5 seconds
       # This prevents duplicate events from rapid-fire mutation processing
       # while allowing legitimate repeated actions (e.g., assign/unassign/reassign)
-      recent_event = Event.where(
-        board: board,
-        action: change.event_action
-      ).where("created_at > ?", 5.seconds.ago)
-       .where("particulars->>'beads_issue_id' = ?", issue.id)
-       .exists?
+      #
+      # For comment events, we check the comment_body_hash to ensure we don't duplicate
+      # the SAME comment, but still allow multiple different comments in the same batch.
+      if change.event_action == "beads_comment_created"
+        # For comments, check the body hash to identify duplicate comments
+        particulars = change.event_particulars
+        comment_hash = particulars[:comment_body_hash] if particulars
+
+        recent_event = Event.where(
+          board: board,
+          action: change.event_action
+        ).where("created_at > ?", 5.seconds.ago)
+         .where("particulars->>'beads_issue_id' = ?", issue.id)
+         .where("particulars->>'comment_body_hash' = ?", comment_hash)
+         .exists?
+      else
+        # For other events, check by action and issue only
+        recent_event = Event.where(
+          board: board,
+          action: change.event_action
+        ).where("created_at > ?", 5.seconds.ago)
+         .where("particulars->>'beads_issue_id' = ?", issue.id)
+         .exists?
+      end
 
       if recent_event
         Rails.logger.debug("BeadsBridge: Skipping duplicate event #{change.event_action} for #{issue.id}")
