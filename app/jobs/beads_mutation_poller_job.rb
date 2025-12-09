@@ -1,5 +1,6 @@
 class BeadsMutationPollerJob < ApplicationJob
   queue_as :default
+  limits_concurrency to: 1, key: ->(board_id) { "beads_poll_#{board_id}" }
 
   def perform(board_id)
     board = Board.find_by(id: board_id)

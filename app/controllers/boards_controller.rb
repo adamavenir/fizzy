@@ -150,11 +150,6 @@ class BoardsController < ApplicationController
     end
 
     def start_beads_polling
-      return if SolidQueue::Job.where(
-        class_name: "BeadsMutationPollerJob",
-        queue_name: "default"
-      ).where("arguments LIKE ?", "%#{@board.id}%").exists?
-
       BeadsMutationPollerJob.perform_later(@board.id)
     end
 end
