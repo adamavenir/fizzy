@@ -1,0 +1,30 @@
+<div class="card-preview-content">
+  <header class="card-preview-header">
+    <span class="card-preview-id">#<%= card.short_id %></span>
+    <%= render "cards/display/preview/beads_tags", card: card %>
+  </header>
+
+  <h3 class="card-preview-title">
+    <%= card.title || "Untitled" %>
+  </h3>
+
+  <% if card.description_without_cover.present? %>
+    <div class="card-preview-description">
+      <%= truncate(card.description_without_cover, length: 150) %>
+    </div>
+  <% end %>
+
+  <footer class="card-preview-footer">
+    <span class="card-preview-meta">
+      <%= card.board.name %>
+    </span>
+    <% if card.assignee.present? %>
+      <span class="card-preview-meta">
+        → <% if (user = card.assignee_user) %><%= user.familiar_name %><% else %><%= card.assignee %><% end %>
+      </span>
+    <% end %>
+    <% if card.closed? %>
+      <span class="card-preview-meta">Done</span>
+    <% end %>
+  </footer>
+</div>

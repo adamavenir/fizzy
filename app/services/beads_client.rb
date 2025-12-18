@@ -207,8 +207,12 @@ class BeadsClient
 
       # Start daemon in background
       Rails.logger.info("BeadsClient: Starting daemon for #{@repo_path}")
-      result = system("bd", "daemon", "start", "--cwd", @repo_path, out: File::NULL, err: File::NULL)
+      result = system("cd #{@repo_path} && bd daemon --start", out: File::NULL, err: File::NULL)
       Rails.logger.info("BeadsClient: Daemon start result: #{result}")
+
+      unless result
+        Rails.logger.error("BeadsClient: Failed to start daemon for #{@repo_path}. Check #{File.join(@repo_path, '.beads', 'daemon.log')}")
+      end
     end
 
     def wait_for_daemon

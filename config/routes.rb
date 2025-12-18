@@ -239,6 +239,9 @@ Rails.application.routes.draw do
   get "/bd/:prefix/:hash", to: "beads/shortcuts#show", as: :beads_short_link, constraints: { hash: /[a-z0-9]+/i }
   get "/bd/:prefix", to: "beads/shortcuts#board", as: :beads_board_link
 
+  # Preview endpoint for hover tooltips
+  get "/beads/preview/:prefix/:hash", to: "beads/previews#show", as: :beads_preview
+
   # Beads integration routes
   scope :beads do
     # Serve images from .beads/images/

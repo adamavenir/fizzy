@@ -27,8 +27,14 @@ module ApplicationHelper
   def render_beads_markdown(text, board:)
     return "" if text.blank?
 
+    # Pre-process to convert card references to markdown links
     processed = auto_link_card_references(text, board)
-    render_markdown(processed)
+
+    # Render with Redcarpet
+    html = render_markdown(processed)
+
+    # Post-process to add preview data attributes
+    add_preview_attributes(html, board)
   end
 
   private
@@ -37,7 +43,7 @@ module ApplicationHelper
     prefix = board&.beads_prefix
     return text unless prefix.present?
 
-    # Replace card references with links
+    # Replace card references with markdown links
     # Pattern matches #prefix-hash or #hash (but not if already in markdown link)
     text.gsub(/#([\w-]+)-([\w]+)\b|#([\w]+)\b/) do
       match_data = Regexp.last_match
@@ -68,6 +74,22 @@ module ApplicationHelper
         matched_text
       end
     end
+  end
+
+  def add_preview_attributes(html, board)
+    prefix = board&.beads_prefix
+    return html unless prefix.present?
+
+    # Add data attributes to links that match /bd/ pattern
+    html.gsub(%r{<a href="/bd/([\w-]+)/([\w]+)"([^>]*)>(.*?)</a>}) do
+      matched_prefix = $1
+      hash = $2
+      existing_attrs = $3
+      link_text = $4
+
+      preview_url = beads_preview_path(matched_prefix, hash)
+      %{<a href="/bd/#{matched_prefix}/#{hash}"#{existing_attrs} data-controller="card-link-preview" data-card-link-preview-url-value="#{preview_url}" data-action="mouseenter->card-link-preview#mouseEnter mouseleave->card-link-preview#mouseLeave">#{link_text}</a>}
+    end.html_safe
   end
 
   def icon_tag(name, **options)

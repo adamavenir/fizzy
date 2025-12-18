@@ -1,8 +1,14 @@
 <label class="card__board">
-  <span class="card__id">
-    <span class="for-screen-reader">Issue ID</span>
+  <button
+    type="button"
+    class="card__id btn btn--plain"
+    data-controller="copy-card-id"
+    data-copy-card-id-text-value="#<%= card.id %>"
+    data-action="click->copy-card-id#copy"
+    title="Click to copy #<%= card.id %>">
+    <span class="for-screen-reader">Issue ID (click to copy)</span>
     <%= card.number %>
-  </span>
+  </button>
   <span class="card__board-name">
     <span class="overflow-ellipsis"><%= card.board.name %></span>
   </span>
